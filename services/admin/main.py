@@ -1,23 +1,41 @@
-import uvicorn
-from piccolo.table import create_db_tables_sync
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.routing import Mount
+from piccolo.apps.user.tables import BaseUser
+from piccolo.engine import engine_finder
+from piccolo.table import create_db_tables
 from piccolo_admin.endpoints import create_admin
-from starlette.routing import Mount, Router
+from piccolo_api.session_auth.tables import SessionsBase
 
 from common.tables import Gym, GymClass, GymClassBook
 
 
-def migrate() -> None:
-    create_db_tables_sync(Gym, GymClass, GymClassBook, if_not_exists=True)
+TABLES = [Gym, GymClass, GymClassBook, BaseUser, SessionsBase]
 
 
-admin = create_admin([Gym, GymClass, GymClassBook])
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    engine = engine_finder()
+    await engine.start_connnection_pool()
+    await create_db_tables(*TABLES, if_not_exists=True)
+
+    yield
+
+    await engine.close_connnection_pool()
 
 
-router = Router([
-    Mount(path="/admin/", app=admin),
-])
-
-
-if __name__ == '__main__':
-    migrate()
-    uvicorn.run(router, host='0.0.0.0', port=8000)
+app = FastAPI(
+    lifespan=lifespan,
+    routes=[
+        Mount(
+            path="/admin/",
+            app=create_admin(
+                tables=TABLES,
+                auth_table=BaseUser,
+                session_table=SessionsBase,
+                site_name="Sport Spotter Admin",
+            ),
+        ),
+    ],
+)

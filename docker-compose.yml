@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: compose/admin/Dockerfile
-    command: python admin/main.py
+    command: uvicorn admin.main:app --port 8000 --host 0.0.0.0 --reload
     volumes:
       - ./services:/app
     env_file:

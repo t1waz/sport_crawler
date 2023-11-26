@@ -4,16 +4,20 @@ import scrapy
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from entites import SportClassData
+from common.entites import SportClassData
 
 
-class ZdrofitSpider(scrapy.Spider):
-    name = "zdrofit_gym"
-    URL = "https://zdrofit.pl/kluby-fitness/warszawa-srodmiescie-ch-arkadia/grafik-zajec"
+class ZdrofitClassSpider(scrapy.Spider):
+    """
+    Read all Zdrofit for given url.
+    """
+
+    name = "zdrofit_class"
 
     def __init__(self, *args, **kwargs) -> None:
-        self._hours: List[str] = []
         self._days: List[str] = []
+        self._hours: List[str] = []
+        self.url = kwargs.get("start_url")
         self._sports: Optional[List[SportClassData]] = None
         self._table: Optional[BeautifulSoup] = None
 
@@ -21,7 +25,7 @@ class ZdrofitSpider(scrapy.Spider):
 
     def start_requests(self) -> scrapy.Request:
         yield scrapy.Request(
-            url=self.URL,
+            url=self.url,
             meta={"playwright": True},
         )
 
@@ -36,22 +40,24 @@ class ZdrofitSpider(scrapy.Spider):
         self._days = [row.find("strong").text for row in rows]
 
     def _read_sport_records(self, table_data: Tag):
-        for i, d in enumerate(table_data.find_all("td")[:len(self._days)]):
+        for i, d in enumerate(table_data.find_all("td")[: len(self._days)]):
             d = d.find("div", {"class": "club-schedule-item"})
             if not d:
                 continue
             start_hour, end_hour = d.find_all("strong")[1].text.strip().split(" - ")
-            self._sports.append(SportClassData(
-                end_hour=end_hour,
-                name=d.find("a").text,
-                start_hour=start_hour,
-                day=f"{self._days[i]} 2023",
-            ))
+            self._sports.append(
+                SportClassData(
+                    end_hour=end_hour,
+                    name=d.find("a").text,
+                    start_hour=start_hour,
+                    day=f"{self._days[i]} 2023",
+                )
+            )
 
     def _read_sports(self) -> None:
         self._sports = []
         table_body = self._table.find("tbody")
-        for data in table_body.find_all("tr")[:len(self._hours)]:
+        for data in table_body.find_all("tr")[: len(self._hours)]:
             self._read_sport_records(table_data=data)
 
     def parse(self, response, **kwargs) -> dict:

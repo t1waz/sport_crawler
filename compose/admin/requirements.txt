@@ -42,3 +42,4 @@ uvicorn==0.24.0.post1
 piccolo==1.1.1
 piccolo-admin==1.2.0
 piccolo-api==1.1.0
+fastapi==0.104.1

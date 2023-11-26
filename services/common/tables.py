@@ -2,12 +2,19 @@ from piccolo.table import Table
 from piccolo.columns import Varchar, ForeignKey, Timestamp
 
 
+class Provider(Table):
+    id = Varchar(length=64, primary_key=True)
+
+    name = Varchar(length=48, unique=True)
+
+
 class Gym(Table):
     id = Varchar(length=64, primary_key=True)
 
     address = Varchar(length=256)
     name = Varchar(length=48, unique=True)
     url = Varchar(length=256, unique=True)
+    provider = ForeignKey(references=Provider)
 
 
 class GymClass(Table):
