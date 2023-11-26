@@ -1,0 +1,38 @@
+version: "3.9"
+
+x-restart-policy: &restart_policy
+  restart: always
+
+volumes:
+  db_data: {}
+
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: compose/admin/Dockerfile
+    command: python admin/main.py
+    volumes:
+      - ./services:/app
+    env_file:
+      - .envs
+    ports:
+      - 0.0.0.0:8000:8000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    <<: *restart_policy
+    image: postgres:15-alpine
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    env_file:
+      - .envs
+    ports:
+      - "45432:5432"
+    healthcheck:
+      test: pg_isready -U postgres -d postgres -h db -p 5432
+      interval: 5s
+      timeout: 10s
+      retries: 5
