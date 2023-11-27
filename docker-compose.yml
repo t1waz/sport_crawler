@@ -6,8 +6,13 @@ x-restart-policy: &restart_policy
 volumes:
   db_data: {}
 
+networks:
+  sport_spotter:
+
+
 services:
   admin:
+    <<: *restart_policy
     build:
       context: .
       dockerfile: compose/admin/Dockerfile
@@ -21,46 +26,54 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - sport_spotter
+
+  scraper: &scraper
+    build:
+      context: .
+      dockerfile: compose/scraper/Dockerfile
+    volumes:
+      - ./services:/app
+    env_file:
+      - .envs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      crawler-deploy:
+        condition: service_completed_successfully
+    networks:
+      - sport_spotter
 
   scraper-master:
-    build:
-      context: .
-      dockerfile: compose/scraper/Dockerfile
+    <<: [*scraper, *restart_policy]
     command: python3 scraper/master.py
-    volumes:
-      - ./services:/app
-    env_file:
-      - .envs
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
   scraper-worker:
-    build:
-      context: .
-      dockerfile: compose/scraper/Dockerfile
+    <<: [*scraper, *restart_policy]
     command: python3 scraper/worker.py
-    volumes:
-      - ./services:/app
-    env_file:
-      - .envs
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
-  scraper-server:
+  crawler: &crawler
+    <<: *restart_policy
     build:
       context: .
       dockerfile: compose/scraper/Dockerfile
-    command: sh -c "cd server && scrapyd-deploy local -p server"
+    command: bash -c "cd crawler && scrapyd"
     volumes:
       - ./services:/app
     env_file:
       - .envs
+    networks:
+      - sport_spotter
+
+  crawler-deploy:
+    <<: *crawler
+    restart: no
+    command: bash -c "cd crawler
+                      && scrapyd-deploy --build-egg=/dev/null
+                      && scrapyd-deploy docker -p crawler"
 
   db:
     <<: *restart_policy
@@ -76,8 +89,11 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+    networks:
+      - sport_spotter
 
   redis:
+    <<: *restart_policy
     build:
       context: .
       dockerfile: compose/redis/Dockerfile
@@ -91,3 +107,5 @@ services:
       - .envs
     sysctls:
       net.core.somaxconn: '511'
+    networks:
+      - sport_spotter

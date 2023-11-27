@@ -12,7 +12,7 @@ class EnergyFitnessClassSpider(scrapy.Spider):
     Read all Energy Fitness classes for given url.
     """
 
-    name = "zdrofit_class"
+    name = "energy_fitness_class"
 
     def __init__(self, *args, **kwargs) -> None:
         self._days: List[str] = []

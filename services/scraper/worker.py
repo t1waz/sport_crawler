@@ -11,4 +11,4 @@ from scraper import settings
 if __name__ == "__main__":
     w = Worker(['default'], connection=Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT))
     w.work()
-    print('worker start', '!!!!!')
+    print('worker start')  # TODO logger

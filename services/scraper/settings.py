@@ -2,4 +2,4 @@
 REDIS_HOST = "redis"
 REDIS_PORT = 6379
 
-SCHEDULE_PATH = "/app/scraper/schedule.yml"
+SCHEDULE_CONFIG_PATH = "/app/scraper/schedule.yml"

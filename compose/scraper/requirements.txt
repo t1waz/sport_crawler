@@ -45,3 +45,4 @@ redis==5.0.1
 rq==1.15.1
 scrapyd==1.4.3
 scrapyd-client==1.2.3
+httpx==0.25.2

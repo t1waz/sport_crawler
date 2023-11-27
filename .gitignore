@@ -1,3 +1,11 @@
 .idea/
 .venv/
 __pycache__/
+services/crawler/build
+services/crawler/dbs
+services/crawler/logs
+services/crawler/project.egg-info
+services/crawler/eggs/
+services/crawler/twistd.pid
+services/dbs
+services/eggs
