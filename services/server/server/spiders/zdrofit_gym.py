@@ -15,7 +15,7 @@ class ZdrofitGymSpider(scrapy.Spider):
     name = "zdrofit_gym"
 
     def __init__(self, *args, **kwargs) -> None:
-        self.url = kwargs.get("start_url") or "https://zdrofit.pl/grafik-zajec"
+        self.url = kwargs.get("start_url")
         self._gyms: Optional[List[SportGymData]] = None
         self._table: Optional[BeautifulSoup] = None
 

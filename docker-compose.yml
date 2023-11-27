@@ -22,6 +22,46 @@ services:
       db:
         condition: service_healthy
 
+  scraper-master:
+    build:
+      context: .
+      dockerfile: compose/scraper/Dockerfile
+    command: python3 scraper/master.py
+    volumes:
+      - ./services:/app
+    env_file:
+      - .envs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scraper-worker:
+    build:
+      context: .
+      dockerfile: compose/scraper/Dockerfile
+    command: python3 scraper/worker.py
+    volumes:
+      - ./services:/app
+    env_file:
+      - .envs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scraper-server:
+    build:
+      context: .
+      dockerfile: compose/scraper/Dockerfile
+    command: sh -c "cd server && scrapyd-deploy local -p server"
+    volumes:
+      - ./services:/app
+    env_file:
+      - .envs
+
   db:
     <<: *restart_policy
     image: postgres:15-alpine
@@ -36,3 +76,18 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+
+  redis:
+    build:
+      context: .
+      dockerfile: compose/redis/Dockerfile
+    command: sh -c "redis-server /config/redis.conf && redis-cli flushall"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    env_file:
+      - .envs
+    sysctls:
+      net.core.somaxconn: '511'

@@ -17,7 +17,7 @@ class EnergyFitnessClassSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs) -> None:
         self._days: List[str] = []
         self._hours: List[str] = []
-        self.url = kwargs.get("start_url") or "https://energyfitness-sulkowicka.cms.efitness.com.pl/kalendarz-zajec"
+        self.url = kwargs.get("start_url")
         self._sports: Optional[List[SportClassData]] = None
         self._table: Optional[BeautifulSoup] = None
 

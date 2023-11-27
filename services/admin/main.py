@@ -8,10 +8,10 @@ from piccolo.table import create_db_tables
 from piccolo_admin.endpoints import create_admin
 from piccolo_api.session_auth.tables import SessionsBase
 
-from common.tables import Gym, GymClass, GymClassBook
+from common.tables import Gym, GymClass, GymClassBook, Provider
 
 
-TABLES = [Gym, GymClass, GymClassBook, BaseUser, SessionsBase]
+TABLES = [Gym, GymClass, GymClassBook, BaseUser, SessionsBase, Provider]
 
 
 @asynccontextmanager
