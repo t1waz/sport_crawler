@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Optional
 
 import scrapy
@@ -44,18 +45,17 @@ class EnergyFitnessClassSpider(scrapy.Spider):
         self._days = [row.find("a").text for row in rows]
 
     def _read_sport_records(self, table_data: Tag, hour: str) -> None:
-        for i, d in enumerate(table_data.find_all("td")[1:len(self._days) + 1]):
+        for i, d in enumerate(table_data.find_all("td")[1 : len(self._days) + 1]):
             d = d.find("div", {"class": "event"})
             if not d:
                 continue
 
             start_hour = hour
-            end_hour = (
-                f'{start_hour}+{d.find("span", {"class": "eventlength"}).text.strip()}'
-            )  # TODO parse it
+            end_hour = f'{start_hour}+{d.find("span", {"class": "eventlength"}).text.strip()}'  # TODO parse it
 
             self._sports.append(
                 SportClassData(
+                    id=str(uuid.uuid4()),
                     end_hour=end_hour,
                     start_hour=start_hour,
                     day=f"{self._days[i]} 2023",

@@ -10,27 +10,22 @@ from common.helpers import parse_duration_to_seconds
 from common.constants import ScrapJobStatus
 
 
-@dataclass
-class ScrapJob:
+@dataclass(frozen=True)
+class Entity:
     id: str
-    spider: str
+
+
+@dataclass(frozen=True)
+class ScrapJob(Entity):
+    spider_name: str
     status: ScrapJobStatus
     created_at: datetime.datetime
     updated_at: datetime.datetime
     finished_at: Optional[datetime.datetime]
 
-    @classmethod
-    def new(cls, **data) -> ScrapJob:
-        data["finished_at"] = None
-        data["created_at"] = datetime.datetime.now()
-        data["updated_at"] = datetime.datetime.now()
-        data["status"] = ScrapJobStatus.PENDING.value
-
-        return cls(id=str(uuid.uuid4()), **data)
-
 
 @dataclass(frozen=True)
-class SportClassData:
+class SportClassData(Entity):
     name: str
     day: str
     end_hour: str
@@ -38,7 +33,7 @@ class SportClassData:
 
 
 @dataclass(frozen=True)
-class SportGymData:
+class SportGymData(Entity):
     name: str
     address: str
     provider: str
@@ -46,7 +41,7 @@ class SportGymData:
 
 
 @dataclass(frozen=True)
-class JobSchedule:
+class JobSchedule(Entity):
     name: str
     job_method: str
     duration: str
@@ -64,7 +59,9 @@ class JobSchedule:
         if self.start_datetime > _now:
             return 0
         else:
-            return (datetime.datetime.now() - self.start_datetime).seconds // self.period + 1
+            return (
+                datetime.datetime.now() - self.start_datetime
+            ).seconds // self.period + 1
 
     def execution_datetimes(self) -> Iterator[datetime.datetime]:
         n = self._get_start_period_multiplier()
@@ -79,10 +76,13 @@ class JobSchedule:
         hour, minute = (int(v) for v in config.get("start").split(":"))
 
         return cls(
+            id=str(uuid.uuid4()),
             name=config.get("name"),
             job_method=config.get("job"),
             duration=config.get("duration"),
-            start_datetime=datetime.datetime(year=now.year, month=now.month, day=now.day, hour=hour, minute=minute)
+            start_datetime=datetime.datetime(
+                year=now.year, month=now.month, day=now.day, hour=hour, minute=minute
+            ),
         )
 
     @cached_property

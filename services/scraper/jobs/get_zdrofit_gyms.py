@@ -1,44 +1,44 @@
-import time
-
-import httpx
-
 from common import constants
-from common.entites import ScrapJob
-from scraper import settings
-from scraper.repositories import scrap_job_repository
-from common.redis import RedisStore
-from redis import Redis
+from scraper.services import ScrapJobService, SpiderConnector
+from scraper.exceptions import (
+    SpiderNotFinished,
+    SpiderNetworkException,
+    SpiderTimeoutException,
+    SpiderParseDataException,
+)
 
 
-def run_spider(spider_name: str, job_id: str, **kwargs) -> None:
-    response = httpx.post(f"http://{settings.CRAWLER_HOST}:{settings.CRAWLER_PORT}/schedule.json", data={"project": "crawler", "spider": spider_name, "jobid": job_id, **kwargs})
-    print(response.status_code, response.text, '!!!!!!!!!!!!!!!')
+SPIDER_NAME = "zdrofit_gym"
 
-    if response.status_code != 200:
-        raise ValueError("network problem")  # TODO: custom exception
-    # response.json.status = "error" -> invalid request
-
-TIMEOUT = 10
 
 def get_zdrofit_gyms():
-    print('job')
-    job = ScrapJob.new(spider="zdrofit_gym")
-    job.status = constants.ScrapJobStatus.RUNNING.value
-    scrap_job_repository.save(obj=job)
+    print("start get_zdrofit_gyms job")  # TODO: logger
+    spider_connector = SpiderConnector(spider_name=SPIDER_NAME)
+    job_service = ScrapJobService.create_new(spider_name=SPIDER_NAME)
 
-    redis_store = RedisStore(conn=Redis(host="redis", port=6379))
+    status = constants.ScrapJobStatus.RUNNING
     try:
-        run_spider(spider_name="zdrofit_gym", job_id=job.id, start_url="https://zdrofit.pl/grafik-zajec")
-    except ValueError:
-        job.status = constants.ScrapJobStatus.UNEXPECTED_ERROR.value
-        scrap_job_repository.save(obj=job)
+        spider_connector.trigger_spider(
+            job_id=job_service.scrap_job.id, start_url="https://zdrofit.pl/grafik-zajec"
+        )
+    except SpiderNetworkException:
+        status = constants.ScrapJobStatus.NETWORK_ERROR
+    except SpiderNotFinished:
+        status = constants.ScrapJobStatus.SPIDER_NOT_FINISHED
+    except SpiderTimeoutException:
+        status = constants.ScrapJobStatus.NETWORK_ERROR
+    except SpiderParseDataException:
+        status = constants.ScrapJobStatus.CONTENT_ERROR
 
-    data = None
-    timeout_counter = 0
-    while data is None:
-        data = redis_store.retrieve(key=job.id)
-        print('data is ', data)
-        time.sleep(1)
+    if status != constants.ScrapJobStatus.RUNNING:
+        is_finished = True
+    else:
+        is_finished = False
 
-    job.status = constants.ScrapJobStatus.FINISH.value
-    scrap_job_repository.save(obj=job)
+    if is_finished:
+        job_service.update_status(status=status, is_finished=is_finished)
+
+    data = spider_connector.fetch_data()
+    job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
+
+    print(data, "DATA !!!!")

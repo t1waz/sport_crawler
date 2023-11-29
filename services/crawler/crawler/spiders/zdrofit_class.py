@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Optional
 
 import scrapy
@@ -47,6 +48,7 @@ class ZdrofitClassSpider(scrapy.Spider):
             start_hour, end_hour = d.find_all("strong")[1].text.strip().split(" - ")
             self._sports.append(
                 SportClassData(
+                    id=str(uuid.uuid4()),
                     end_hour=end_hour,
                     name=d.find("a").text,
                     start_hour=start_hour,

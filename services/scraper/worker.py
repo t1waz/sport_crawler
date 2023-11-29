@@ -1,3 +1,4 @@
+from piccolo.table import create_db_tables_sync
 from redis import Redis
 from rq import Worker
 
@@ -9,6 +10,9 @@ from scraper import settings
 
 
 if __name__ == "__main__":
-    w = Worker(['default'], connection=Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT))
+    w = Worker(
+        ["default"],
+        connection=Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT),
+    )
     w.work()
-    print('worker start')  # TODO logger
+    print("worker start")  # TODO logger

@@ -12,9 +12,15 @@ from scraper import settings
 
 
 if __name__ == "__main__":
-    schedule_config = load_schedule_config(schedule_file_path=settings.SCHEDULE_CONFIG_PATH)
-    redis_q = Queue(connection=Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT))
-    jobs = [JobSchedule.from_config(**config) for config in schedule_config.get("jobs", [])]
+    schedule_config = load_schedule_config(
+        schedule_file_path=settings.SCHEDULE_CONFIG_PATH
+    )
+    redis_q = Queue(
+        connection=Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+    )
+    jobs = [
+        JobSchedule.from_config(**config) for config in schedule_config.get("jobs", [])
+    ]
 
     data = [[job, next(job.execution_datetimes())] for job in jobs]
 

@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 
 from common.entites import SportGymData
+import uuid
 
 
 class ZdrofitGymSpider(scrapy.Spider):
@@ -44,6 +45,7 @@ class ZdrofitGymSpider(scrapy.Spider):
         for section in data.find("ul"):
             self._gyms.append(
                 SportGymData(
+                    id=str(uuid.uuid4()),
                     url=None,
                     provider="zdrofit",
                     name=self._get_section_name(section=section),

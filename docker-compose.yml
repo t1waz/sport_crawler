@@ -5,7 +5,9 @@ x-restart-policy: &restart_policy
 
 volumes:
   db_data: {}
+  mongo_data: {}
   scrapyd_deploy: {}
+
 
 networks:
   sport_spotter:
@@ -41,10 +43,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
       redis:
         condition: service_healthy
-#      crawler-deploy:
-#        condition: service_completed_successfully
+      crawler-deploy:
+        condition: service_completed_successfully
     networks:
       - sport_spotter
 
@@ -96,7 +100,7 @@ services:
     healthcheck:
       test: pg_isready -U postgres -d postgres -h db -p 5432
       interval: 5s
-      timeout: 10s
+      timeout: 3s
       retries: 5
     networks:
       - sport_spotter
@@ -116,5 +120,20 @@ services:
       - .envs
     sysctls:
       net.core.somaxconn: '511'
+    networks:
+      - sport_spotter
+
+  mongo:
+    <<: *restart_policy
+    image: mongo:7.0.4
+    volumes:
+      - mongo_data:/data/db
+    env_file:
+      - .envs
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongo:27017 --quiet
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - sport_spotter

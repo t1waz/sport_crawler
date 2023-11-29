@@ -1,15 +1,22 @@
-from common.tables import ScrapJobTable
-from common.entites import ScrapJob
-from dataclasses import asdict
+from functools import lru_cache
+
+from pymongo import MongoClient
+
+from common.repositores import MongoRepository
+from scraper import settings
 
 
-class ScrapJobRepository:
-    TABLE = ScrapJobTable
-
-    @classmethod
-    def save(cls, obj: ScrapJob) -> None:
-        table_record = cls.TABLE(**asdict(obj))
-        table_record.save().run_sync()
+class ScrapJobRepository(MongoRepository):
+    COLLECTION_NAME = "scrap-job"
 
 
-scrap_job_repository = ScrapJobRepository()
+@lru_cache
+def get_scrap_job_repository() -> ScrapJobRepository:
+    return ScrapJobRepository(
+        db=MongoClient(host=settings.MONGO_HOST, port=settings.MONGO_PORT)[
+            settings.MONGO_DATABASE
+        ]
+    )
+
+
+scrap_job_repository = get_scrap_job_repository()

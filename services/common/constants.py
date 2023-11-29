@@ -8,3 +8,4 @@ class ScrapJobStatus(str, enum.Enum):
     CONTENT_ERROR = "content_error"
     NETWORK_ERROR = "network error"
     UNEXPECTED_ERROR = "unexpected_error"
+    SPIDER_NOT_FINISHED = "spider_not_finish"
