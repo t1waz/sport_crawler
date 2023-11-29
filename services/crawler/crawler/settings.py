@@ -13,6 +13,9 @@ SPIDER_MODULES = ["crawler.spiders"]
 NEWSPIDER_MODULE = "crawler.spiders"
 
 
+REDIS_HOST = "redis"  # TODO move to envs
+REDIS_PORT = 6379
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "crawler (+http://www.yourdomain.com)"
 
@@ -44,9 +47,9 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    "crawler.middlewares.CrawlerSpiderMiddleware": 543,
-#}
+SPIDER_MIDDLEWARES = {
+   "crawler.middlewares.CrawlerSpiderMiddleware": 543,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html

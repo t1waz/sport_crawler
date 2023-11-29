@@ -4,9 +4,12 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+from crawler.redis import redis_store
+
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+
 
 
 class CrawlerSpiderMiddleware:
@@ -29,11 +32,9 @@ class CrawlerSpiderMiddleware:
         return None
 
     def process_spider_output(self, response, result, spider):
-        # Called with the results returned from the Spider, after
-        # it has processed the response.
-
-        # Must return an iterable of Request, or item objects.
         for i in result:
+            spider.logger.info(f"stored job id: {spider.job_id}")
+            redis_store.store(key=spider.job_id, data=i)
             yield i
 
     def process_spider_exception(self, response, exception, spider):

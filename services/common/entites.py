@@ -2,10 +2,31 @@ from __future__ import annotations
 
 import datetime
 import importlib.util
+import uuid
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Iterator, Optional
 from common.helpers import parse_duration_to_seconds
+from common.constants import ScrapJobStatus
+
+
+@dataclass
+class ScrapJob:
+    id: str
+    spider: str
+    status: ScrapJobStatus
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    finished_at: Optional[datetime.datetime]
+
+    @classmethod
+    def new(cls, **data) -> ScrapJob:
+        data["finished_at"] = None
+        data["created_at"] = datetime.datetime.now()
+        data["updated_at"] = datetime.datetime.now()
+        data["status"] = ScrapJobStatus.PENDING.value
+
+        return cls(id=str(uuid.uuid4()), **data)
 
 
 @dataclass(frozen=True)

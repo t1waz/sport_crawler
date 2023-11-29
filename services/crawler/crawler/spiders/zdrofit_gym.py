@@ -14,8 +14,9 @@ class ZdrofitGymSpider(scrapy.Spider):
 
     name = "zdrofit_gym"
 
-    def __init__(self, *args, **kwargs) -> None:
-        self.url = kwargs.get("start_url")
+    def __init__(self, start_url: str, *args, **kwargs) -> None:
+        self.url = start_url
+        self.job_id = kwargs.get("_job")  # TODO move to mixin
         self._gyms: Optional[List[SportGymData]] = None
         self._table: Optional[BeautifulSoup] = None
 
@@ -61,7 +62,7 @@ class ZdrofitGymSpider(scrapy.Spider):
         self._table = BeautifulSoup(table_html, features="lxml")
 
         self._read_gyms()
-
+        self.logger.info("aaa test")
         return {"gyms": self.gyms}
 
     @property

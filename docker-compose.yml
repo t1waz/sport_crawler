@@ -5,6 +5,7 @@ x-restart-policy: &restart_policy
 
 volumes:
   db_data: {}
+  scrapyd_deploy: {}
 
 networks:
   sport_spotter:
@@ -42,8 +43,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      crawler-deploy:
-        condition: service_completed_successfully
+#      crawler-deploy:
+#        condition: service_completed_successfully
     networks:
       - sport_spotter
 
@@ -59,10 +60,13 @@ services:
     <<: *restart_policy
     build:
       context: .
-      dockerfile: compose/scraper/Dockerfile
-    command: bash -c "cd crawler && scrapyd"
+      dockerfile: compose/crawler/Dockerfile
+    command: scrapyd
+    ports:
+      - 0.0.0.0:8888:6800
     volumes:
-      - ./services:/app
+      - scrapyd_deploy:/app
+      - ./services/common:/app/common
     env_file:
       - .envs
     networks:
@@ -71,9 +75,14 @@ services:
   crawler-deploy:
     <<: *crawler
     restart: no
-    command: bash -c "cd crawler
-                      && scrapyd-deploy --build-egg=/dev/null
-                      && scrapyd-deploy docker -p crawler"
+    command: bash -c "scrapyd-deploy --build-egg=/dev/null
+                      && scrapyd-deploy docker -p crawler
+                      && rm -r build
+                      && rm -r project.egg-info"
+    volumes:
+      - ./services/crawler:/app
+    ports:
+      - 8889:6800
 
   db:
     <<: *restart_policy
