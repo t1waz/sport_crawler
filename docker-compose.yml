@@ -6,29 +6,21 @@ x-restart-policy: &restart_policy
 volumes:
   db_data: {}
   mongo_data: {}
+  grafana_data: {}
   scrapyd_deploy: {}
-
 
 networks:
   sport_spotter:
 
 
 services:
-  admin:
+  grafana:
     <<: *restart_policy
-    build:
-      context: .
-      dockerfile: compose/admin/Dockerfile
-    command: uvicorn admin.main:app --port 8000 --host 0.0.0.0 --reload
+    image: grafana/grafana-enterprise
     volumes:
-      - ./services:/app
-    env_file:
-      - .envs
+      - grafana_data:/var/lib/grafana
     ports:
-      - 0.0.0.0:8000:8000
-    depends_on:
-      db:
-        condition: service_healthy
+     - '0.0.0.0:3000:3000'
     networks:
       - sport_spotter
 

@@ -18,4 +18,4 @@ RUN pip install --upgrade pip \
 
 RUN playwright install
 
-COPY ./services/admin /app
+COPY ./services/crawler /app

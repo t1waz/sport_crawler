@@ -1,9 +1,8 @@
-from piccolo.table import create_db_tables_sync
+from redis import Redis
 from redis import Redis
 from rq import Worker
 
 import common  # type: ignore
-
 # https://python-rq.org/docs/workers/#performance-notes
 import scraper.jobs  # type: ignore
 from scraper import settings

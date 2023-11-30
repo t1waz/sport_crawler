@@ -6,6 +6,7 @@ from bs4.element import Tag
 
 from common.entites import SportGymData
 import uuid
+from urllib.parse import urlparse
 
 
 class ZdrofitGymSpider(scrapy.Spider):
@@ -17,6 +18,7 @@ class ZdrofitGymSpider(scrapy.Spider):
 
     def __init__(self, start_url: str, *args, **kwargs) -> None:
         self.url = start_url
+        self._domain = urlparse(self.url).netloc
         self.job_id = kwargs.get("_job")  # TODO move to mixin
         self._gyms: Optional[List[SportGymData]] = None
         self._table: Optional[BeautifulSoup] = None
@@ -35,19 +37,18 @@ class ZdrofitGymSpider(scrapy.Spider):
 
     @staticmethod
     def _get_section_name(section: Tag) -> str:
-        try:
-            return f'Zdrofit {section.find("a").text}'
-        except Exception as exc:
-            print(section, "!!!")
-            raise exc
+        return f'Zdrofit {section.find("a").text}'
+
+    def _get_section_url(self, section: Tag) -> str:
+        return f'https://{self._domain}{section.find("a")["href"].replace("//", "/")}'
 
     def _read_city(self, data: Tag) -> None:
         for section in data.find("ul"):
             self._gyms.append(
                 SportGymData(
-                    id=str(uuid.uuid4()),
-                    url=None,
                     provider="zdrofit",
+                    id=str(uuid.uuid4()),
+                    url=self._get_section_url(section=section),
                     name=self._get_section_name(section=section),
                     address=self._get_section_address(section=section),
                 )

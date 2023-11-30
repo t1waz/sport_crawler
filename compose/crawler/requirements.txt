@@ -47,3 +47,5 @@ scrapyd==1.4.3
 scrapyd-client==1.2.3
 httpx==0.25.2
 pymongo==4.6.0
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9

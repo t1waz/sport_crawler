@@ -2,5 +2,5 @@ jobs:
   - name: "get_zdrofit_gyms"
     job: "scraper.jobs.get_zdrofit_gyms"
     start: "00:01"
-    duration: "30s"
+    duration: "60s"
 

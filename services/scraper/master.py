@@ -8,10 +8,14 @@ from rq import Queue
 
 from common.entites import JobSchedule
 from common.helpers import load_schedule_config
+from common.tables import Base
 from scraper import settings
+from scraper.db import engine
 
 
 if __name__ == "__main__":
+    Base.metadata.create_all(engine)
+
     schedule_config = load_schedule_config(
         schedule_file_path=settings.SCHEDULE_CONFIG_PATH
     )
