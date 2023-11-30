@@ -1,5 +1,7 @@
 from common.entites import Entity
 from dataclasses import asdict
+from common.tables import Base
+from sqlalchemy.orm import Session
 
 
 class Repository:
@@ -10,21 +12,32 @@ class Repository:
         pass
 
 
-class MongoRepository(Repository):
-    COLLECTION_NAME: str = ""
+class SQLRepository(Repository):
+    TABLE: Base = None
 
-    def __init__(self, db, *args, **kwargs) -> None:
-        self._db = db
+    def __init__(self, engine, *args, **kwargs) -> None:
+        self._engine = engine
 
         super().__init__(*args, **kwargs)
 
     def save(self, obj: Entity) -> None:
         obj_data = asdict(obj=obj)
 
-        self.collection.insert_one(obj_data)
+        with Session(self._engine) as session:
+            table_obj = self.TABLE(**obj_data)
+            session.add(table_obj)
+            session.commit()
 
     def update(self, obj: Entity) -> None:
-        self.collection.update_one({"id": obj.id}, {"$set": asdict(obj)})
+        obj_data = asdict(obj=obj)
+
+        with Session(self._engine) as session:
+            table_obj = session.query(self.TABLE).populate_existing().with_for_update().filter(self.TABLE.id == obj.id).first()
+            for attr, value in obj_data.items():
+                setattr(table_obj, attr, value)
+
+            session.add(table_obj)
+            session.commit()
 
     @property
     def collection(self):

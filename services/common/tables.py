@@ -1,11 +1,10 @@
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped
 from typing import List
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import mapped_column
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import Column, String, JSON, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+
+from common import constants
 
 Base = declarative_base()
 
@@ -19,7 +18,7 @@ class ProviderTable(Base):
 
 
 class GymTable(Base):
-    __tablename__ = 'gym_table'
+    __tablename__ = 'gym'
 
     id = Column(String(64), primary_key=True)
     address = Column(String(256))
@@ -28,6 +27,18 @@ class GymTable(Base):
     is_active = Boolean()
     provider_id: Mapped[str] = mapped_column(ForeignKey("provider.id"))
     provider: Mapped["ProviderTable"] = relationship(back_populates="gyms")
+
+
+class ScrapJobTable(Base):
+    __tablename__ = "scrap_job"
+
+    id = Column(String(64), primary_key=True)
+    created_at = Column(DateTime())
+    updated_at = Column(DateTime())
+    spider_name = Column(String(64))
+    params = Column(JSON(), default=[])
+    finished_at = Column(DateTime(), nullable=True)
+    status = Column(Enum(constants.ScrapJobStatus))
 
 
 # class GymTable(Table):

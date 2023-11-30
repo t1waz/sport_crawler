@@ -1,22 +1,17 @@
 from functools import lru_cache
 
-from pymongo import MongoClient
+from common.repositores import SQLRepository
+from common.tables import ScrapJobTable
+from scraper.db import engine
 
-from common.repositores import MongoRepository
-from scraper import settings
 
-
-class ScrapJobRepository(MongoRepository):
-    COLLECTION_NAME = "scrap-job"
+class ScrapJobRepository(SQLRepository):
+    TABLE = ScrapJobTable
 
 
 @lru_cache
 def get_scrap_job_repository() -> ScrapJobRepository:
-    return ScrapJobRepository(
-        db=MongoClient(host=settings.MONGO_HOST, port=settings.MONGO_PORT)[
-            settings.MONGO_DATABASE
-        ]
-    )
+    return ScrapJobRepository(engine=engine)
 
 
 scrap_job_repository = get_scrap_job_repository()
