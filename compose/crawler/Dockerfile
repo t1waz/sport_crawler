@@ -17,5 +17,3 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
 RUN playwright install
-
-COPY ./services/crawler /app

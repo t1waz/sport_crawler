@@ -12,4 +12,3 @@ COPY ./compose/scraper/requirements.txt /app
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-COPY ./services/scraper /app

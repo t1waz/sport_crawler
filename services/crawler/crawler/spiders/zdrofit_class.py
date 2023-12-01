@@ -18,6 +18,7 @@ class ZdrofitClassSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs) -> None:
         self._days: List[str] = []
         self._hours: List[str] = []
+        self.job_id = kwargs.get("_job")  # TODO move to mixin
         self.url = kwargs.get("start_url")
         self._sports: Optional[List[SportClassData]] = None
         self._table: Optional[BeautifulSoup] = None

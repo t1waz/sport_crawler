@@ -23,8 +23,8 @@ import random
 
 class SpiderConnector:
     MIN_READ_DELAY = 1
-    MAX_READ_DELAY = 5
-    MAX_READ_ATTEMPTS = 30
+    MAX_READ_DELAY = 3
+    MAX_READ_ATTEMPTS = 1000
 
     def __init__(self, spider_name: str) -> None:
         self._spider_name = spider_name

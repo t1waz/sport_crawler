@@ -56,11 +56,14 @@ class ScraperJobLogic:
             data = self._spider_connector.fetch_data()
             status = constants.ScrapJobStatus.FINISH
         except SpiderNotFinished:
-            data = None
             status = constants.ScrapJobStatus.SPIDER_NOT_FINISHED
+            self._scrap_job_service.update_status(status=status, is_finished=True)
+            return
 
         if not data:
             status = constants.ScrapJobStatus.CONTENT_ERROR
+            self._scrap_job_service.update_status(status=status, is_finished=True)
+            return
 
         try:
             self.process_data(data=data)
@@ -69,4 +72,3 @@ class ScraperJobLogic:
             status = constants.ScrapJobStatus.PROCESS_DATA_ERROR
 
         self._scrap_job_service.update_status(status=status, is_finished=True)
-

@@ -41,9 +41,10 @@ class GymClass(Base):
 
 
 class GymClassBook(Base):
-    __tablename__  = "gym_class_book"
+    __tablename__ = "gym_class_book"
 
     id = Column(String(64), primary_key=True)
+    is_active = Column(Boolean(), nullable=True)
     end_at = Column(DateTime(), nullable=True)
     start_at = Column(DateTime(), nullable=True)
     gym_class_id: Mapped[str] = mapped_column(ForeignKey("gym_class.id"))
