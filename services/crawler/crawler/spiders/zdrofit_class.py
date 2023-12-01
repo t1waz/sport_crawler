@@ -70,7 +70,7 @@ class ZdrofitClassSpider(scrapy.Spider):
         self._read_days()
         self._read_sports()
 
-        return {"sports": self.sports}
+        return {"classes": self.sports}
 
     @property
     def sports(self) -> List[SportClassData]:

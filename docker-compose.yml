@@ -13,15 +13,15 @@ networks:
 
 
 services:
-  grafana:
-    <<: *restart_policy
-    image: grafana/grafana-enterprise
-    volumes:
-      - grafana_data:/var/lib/grafana
-    ports:
-     - '0.0.0.0:3000:3000'
-    networks:
-      - sport_spotter
+#  grafana:
+#    <<: *restart_policy
+#    image: grafana/grafana-enterprise
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    ports:
+#     - '0.0.0.0:3000:3000'
+#    networks:
+#      - sport_spotter
 
   scraper: &scraper
     build:
@@ -36,8 +36,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      crawler-deploy:
-        condition: service_completed_successfully
+#      crawler-deploy:
+#        condition: service_completed_successfully
     networks:
       - sport_spotter
 
@@ -47,7 +47,7 @@ services:
 
   scraper-worker:
     <<: [*scraper, *restart_policy]
-    command: python3 scraper/worker.py
+    command: dramatiq scraper.jobs
 
   crawler: &crawler
     <<: *restart_policy
@@ -55,8 +55,8 @@ services:
       context: .
       dockerfile: compose/crawler/Dockerfile
     command: scrapyd
-    ports:
-      - 0.0.0.0:8888:6800
+#    ports:
+#      - 0.0.0.0:8888:6800
     volumes:
       - scrapyd_deploy:/app
       - ./services/common:/app/common
@@ -74,8 +74,8 @@ services:
                       && rm -r project.egg-info"
     volumes:
       - ./services/crawler:/app
-    ports:
-      - 8889:6800
+#    ports:
+#      - 8889:6800
 
   db:
     <<: *restart_policy
@@ -84,8 +84,8 @@ services:
       - db_data:/var/lib/postgresql/data
     env_file:
       - .envs
-    ports:
-      - "45432:5432"
+#    ports:
+#      - "45432:5432"
     healthcheck:
       test: pg_isready -U postgres -d postgres -h db -p 5432
       interval: 5s

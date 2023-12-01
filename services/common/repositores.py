@@ -32,7 +32,13 @@ class SQLRepository(Repository):
         obj_data = asdict(obj=obj)
 
         with Session(self._engine) as session:
-            table_obj = session.query(self.TABLE).populate_existing().with_for_update().filter(self.TABLE.id == obj.id).first()
+            table_obj = (
+                session.query(self.TABLE)
+                .populate_existing()
+                .with_for_update()
+                .filter(self.TABLE.id == obj.id)
+                .first()
+            )
             for attr, value in obj_data.items():
                 setattr(table_obj, attr, value)
 

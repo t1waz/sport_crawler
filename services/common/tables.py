@@ -10,7 +10,7 @@ Base = declarative_base()
 
 
 class ProviderTable(Base):
-    __tablename__ = 'provider'
+    __tablename__ = "provider"
 
     id = Column(String(64), primary_key=True)
     name = Column(String(48))
@@ -18,7 +18,7 @@ class ProviderTable(Base):
 
 
 class GymTable(Base):
-    __tablename__ = 'gym'
+    __tablename__ = "gym"
 
     id = Column(String(64), primary_key=True)
     address = Column(String(256))
@@ -27,6 +27,27 @@ class GymTable(Base):
     is_active = Boolean()
     provider_id: Mapped[str] = mapped_column(ForeignKey("provider.id"))
     provider: Mapped["ProviderTable"] = relationship(back_populates="gyms")
+    classes: Mapped[List["GymClass"]] = relationship(back_populates="gym")
+
+
+class GymClass(Base):
+    __tablename__ = "gym_class"
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(48))
+    gym_id: Mapped[str] = mapped_column(ForeignKey("gym.id"))
+    gym: Mapped["GymTable"] = relationship(back_populates="classes")
+    books: Mapped["GymClassBook"] = relationship(back_populates="gym_class")
+
+
+class GymClassBook(Base):
+    __tablename__  = "gym_class_book"
+
+    id = Column(String(64), primary_key=True)
+    end_at = Column(DateTime(), nullable=True)
+    start_at = Column(DateTime(), nullable=True)
+    gym_class_id: Mapped[str] = mapped_column(ForeignKey("gym_class.id"))
+    gym_class: Mapped["GymClass"] = relationship(back_populates="books")
 
 
 class ScrapJobTable(Base):
@@ -39,25 +60,3 @@ class ScrapJobTable(Base):
     params = Column(JSON(), default=[])
     finished_at = Column(DateTime(), nullable=True)
     status = Column(Enum(constants.ScrapJobStatus))
-
-
-# class GymTable(Table):
-#     id = Varchar(length=64, primary_key=True)
-#     address = Varchar(length=256)
-#     name = Varchar(length=48, unique=True)
-#     url = Varchar(length=256, unique=True)
-#     provider = ForeignKey(references=ProviderTable)
-#     is_active = Boolean(default=True)
-#
-#
-# class GymClassTable(Table):
-#     id = Varchar(length=64, primary_key=True)
-#     gym = ForeignKey(references=GymTable)
-#     name = Varchar(length=48, unique=True)
-#
-#
-# class GymClassBookTable(Table):
-#     id = Varchar(length=64, primary_key=True)
-#     end_datetime = Timestamp()
-#     start_datetime = Timestamp()
-#     gym_class = ForeignKey(references=GymClassTable)

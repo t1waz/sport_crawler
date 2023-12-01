@@ -18,10 +18,13 @@ from scraper.exceptions import (
 )
 from scraper.repositories import scrap_job_repository
 from scraper.stores import redis_store
+import random
 
 
 class SpiderConnector:
-    MAX_READ_ATTEMPTS = 20
+    MIN_READ_DELAY = 1
+    MAX_READ_DELAY = 5
+    MAX_READ_ATTEMPTS = 30
 
     def __init__(self, spider_name: str) -> None:
         self._spider_name = spider_name
@@ -36,8 +39,7 @@ class SpiderConnector:
             if data:
                 break
 
-            time.sleep(1)
-            print("read attempt", read_attempts, "data is ", data, "!")
+            time.sleep(random.randint(self.MIN_READ_DELAY, self.MAX_READ_ATTEMPTS))
             read_attempts += 1
 
         self._job_id = None
