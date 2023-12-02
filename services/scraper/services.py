@@ -1,37 +1,33 @@
 from __future__ import annotations
 
 import datetime
+import random
 import time
 import uuid
 from dataclasses import replace
 from typing import Optional, Any
 
-import httpx
-
 from common import constants
+from common.entites import *
 from common.entites import ScrapJob
-from scraper import settings
 from scraper.exceptions import (
-    SpiderTimeoutException,
-    SpiderNetworkException,
     SpiderNotFinished,
 )
 from scraper.repositories import scrap_job_repository
 from scraper.stores import redis_store
-import random
+import asyncio
 
 
-class SpiderConnector:
+class SpiderDataConnector:
     MIN_READ_DELAY = 1
     MAX_READ_DELAY = 3
     MAX_READ_ATTEMPTS = 1000
 
-    def __init__(self, spider_name: str) -> None:
+    def __init__(self, spider_name: str, job_id: str) -> None:
+        self._job_id = job_id
         self._spider_name = spider_name
-        self._job_id: Optional[str] = None
-        self._response: Optional[httpx.Response] = None
 
-    def fetch_data(self) -> Optional[Any]:
+    async def fetch_data(self) -> Optional[Any]:
         data = None
         read_attempts = 0
         while read_attempts < self.MAX_READ_ATTEMPTS:
@@ -39,7 +35,7 @@ class SpiderConnector:
             if data:
                 break
 
-            time.sleep(random.randint(self.MIN_READ_DELAY, self.MAX_READ_ATTEMPTS))
+            await asyncio.sleep(1)
             read_attempts += 1
 
         self._job_id = None
@@ -50,35 +46,8 @@ class SpiderConnector:
 
         return data
 
-    def trigger_spider(self, job_id: str, **data) -> None:
-        self._job_id = job_id
-
-        try:
-            self._response = httpx.post(
-                f"http://{settings.CRAWLER_HOST}:{settings.CRAWLER_PORT}/schedule.json",
-                data={
-                    "jobid": job_id,
-                    "project": "crawler",
-                    "spider": self._spider_name,
-                    **data,
-                },
-            )
-        except httpx.TimeoutException:
-            raise SpiderTimeoutException("spider timeout")
-
-        if self._response.status_code != 200:
-            raise SpiderNetworkException("response is not 200")
-
-        data = self._response.json()
-
-        # if data.get("status") == "error":
-        #
-
     @property
-    def job_id(self) -> Optional[str]:
-        if self._job_id is None:
-            raise ValueError("trigger spider first")
-
+    def job_id(self) -> str:
         return self._job_id
 
 

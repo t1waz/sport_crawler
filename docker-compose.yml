@@ -49,34 +49,6 @@ services:
     <<: [*scraper, *restart_policy]
     command: dramatiq scraper.jobs
 
-  crawler: &crawler
-    <<: *restart_policy
-    build:
-      context: .
-      dockerfile: compose/crawler/Dockerfile
-    command: scrapyd
-#    ports:
-#      - 0.0.0.0:8888:6800
-    volumes:
-      - scrapyd_deploy:/app
-      - ./services/common:/app/common
-    env_file:
-      - .envs
-    networks:
-      - sport_spotter
-
-  crawler-deploy:
-    <<: *crawler
-    restart: no
-    command: bash -c "scrapyd-deploy --build-egg=/dev/null
-                      && scrapyd-deploy docker -p crawler
-                      && rm -r build
-                      && rm -r project.egg-info"
-    volumes:
-      - ./services/crawler:/app
-#    ports:
-#      - 8889:6800
-
   db:
     <<: *restart_policy
     image: postgres:15-alpine

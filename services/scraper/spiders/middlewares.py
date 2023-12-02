@@ -4,7 +4,7 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
-from crawler.redis import redis_store
+from scraper.stores import redis_store
 
 
 # useful for handling different item types with a single interface

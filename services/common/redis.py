@@ -16,6 +16,7 @@ class RedisStore:
     def retrieve(self, key: str) -> Any:
         data = self._conn.get(name=key)
         if data:
+            self._conn.delete(key)
             return pickle.loads(data)
 
         return None
