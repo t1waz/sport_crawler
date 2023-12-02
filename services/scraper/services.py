@@ -81,7 +81,10 @@ class ScrapJobService:
     def update_status(
         self, status: constants.ScrapJobStatus, is_finished: Optional[bool] = False
     ) -> None:
-        updated_data = {"status": status}
+        updated_data = {
+            "status": status,
+            "updated_at": datetime.datetime.now(),
+        }
         if is_finished:
             updated_data["finished_at"] = datetime.datetime.now()
 

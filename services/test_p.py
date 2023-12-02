@@ -3,7 +3,6 @@ import uuid
 from dataclasses import asdict
 from typing import Any
 
-import dramatiq
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from playwright.async_api import async_playwright, Playwright
@@ -12,8 +11,7 @@ from sqlalchemy.orm import Session
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
 from scraper.db import engine
-from scraper.services import ScrapJobService
-from common import constants
+import dramatiq
 
 
 DOMAIN = "zdrofit.pl"
@@ -32,7 +30,7 @@ def _get_section_url(section: Tag) -> str:
     return f'https://{DOMAIN}{section.find("a")["href"].replace("//", "/")}'
 
 
-async def get_page_data(playwright: Playwright):
+async def run(playwright: Playwright):
     chromium = playwright.chromium
     browser = await chromium.launch()
     page = await browser.new_page()
@@ -97,16 +95,10 @@ def process_data(data: Any) -> None:
 
 
 async def main():
-    job_service = ScrapJobService.create_new(spider_name="get_zdrofit_gyms")
-
     async with async_playwright() as playwright:
-        data = await get_page_data(playwright=playwright)
-    job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
+        data = await run(playwright=playwright)
 
     process_data(data=data)
-
-    job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
-    print("get zdrofit gyms success !")  # TODO logger
 
 
 @dramatiq.actor

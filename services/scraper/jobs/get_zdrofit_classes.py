@@ -1,3 +1,5 @@
+import asyncio
+
 import dramatiq
 from sqlalchemy.orm import Session
 
@@ -6,23 +8,27 @@ from scraper.db import engine
 from scraper.jobs.get_zdrofit_class import get_zdrofit_class
 
 
+async def main():
+    with Session(engine) as session:
+        zdrofit_provider = (
+            session.query(ProviderTable).filter(ProviderTable.name == "zdrofit").first()
+        )
+        if not zdrofit_provider:
+            print("no zdrofit provider")  # TODO move to logger
+            return
+
+        zdrofit_gyms = session.query(GymTable).filter(
+            GymTable.provider_id == zdrofit_provider.id
+        )
+
+        for i, gym in enumerate(zdrofit_gyms):
+            get_zdrofit_class.send(gym.id)
+            if i % 5 == 0:
+                await asyncio.sleep(10)
+
+
 @dramatiq.actor
 def get_zdrofit_classes():
-    pass
+    print("start get_zdrofit_classes")  # TODO move to logger
 
-
-#     print("start get_zdrofit_classes")  # TODO move to logger
-#
-#     with Session(engine) as session:
-#         zdrofit_provider = (
-#             session.query(ProviderTable).filter(ProviderTable.name == "zdrofit").first()
-#         )
-#         if not zdrofit_provider:
-#             print("no zdrofit provider")  # TODO move to logger
-#             return
-#
-#         zdrofit_gyms = session.query(GymTable).filter(
-#             GymTable.provider_id == zdrofit_provider.id
-#         )
-#         for gym in zdrofit_gyms:
-#             get_zdrofit_class.send(gym.id)
+    asyncio.run(main())
