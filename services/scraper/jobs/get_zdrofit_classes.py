@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import dramatiq
 from sqlalchemy.orm import Session
@@ -23,8 +24,7 @@ async def main():
 
         for i, gym in enumerate(zdrofit_gyms):
             get_zdrofit_class.send(gym.id)
-            if i % 5 == 0:
-                await asyncio.sleep(10)
+            # await asyncio.sleep(random.randint(2, 5))
 
 
 @dramatiq.actor

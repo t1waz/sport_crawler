@@ -9,3 +9,4 @@ services/crawler/eggs/
 services/crawler/twistd.pid
 services/dbs
 services/eggs
+.envs

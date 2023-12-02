@@ -12,8 +12,14 @@ from sqlalchemy.orm import Session
 from common import constants
 from common.entites import SportClassData
 from common.tables import GymClass, GymClassBook, GymTable
+from scraper import settings
 from scraper.db import engine
 from scraper.services import ScrapJobService
+
+
+USERNAME = "testaaa"
+PASSWORD = "Testuser123123123"
+PROXY_SERVER = "https://pr.oxylabs.io:7777"
 
 
 MONTH_MAPPER = {
@@ -105,7 +111,14 @@ class ZdrofitClassSpider:
 
     async def get_data(self):
         chromium = self._playwright.chromium
-        browser = await chromium.launch()
+        browser = await chromium.launch(
+            headless=True,
+            proxy={
+                "server": settings.PROXY_SERVER,
+                "username": settings.USERNAME,
+                "password": settings.PASSWORD,
+            }
+        )
         page = await browser.new_page()
         await page.goto(self._url)
 

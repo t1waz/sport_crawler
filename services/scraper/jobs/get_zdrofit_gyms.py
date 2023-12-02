@@ -9,11 +9,12 @@ from bs4.element import Tag
 from playwright.async_api import async_playwright, Playwright
 from sqlalchemy.orm import Session
 
+from common import constants
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
+from scraper import settings
 from scraper.db import engine
 from scraper.services import ScrapJobService
-from common import constants
 
 
 DOMAIN = "zdrofit.pl"
@@ -34,7 +35,14 @@ def _get_section_url(section: Tag) -> str:
 
 async def get_page_data(playwright: Playwright):
     chromium = playwright.chromium
-    browser = await chromium.launch()
+    browser = await chromium.launch(
+        headless=True,
+        proxy={
+            "server": settings.PROXY_SERVER,
+            "username": settings.USERNAME,
+            "password": settings.PASSWORD,
+        }
+    )
     page = await browser.new_page()
     await page.goto(URL)
 
