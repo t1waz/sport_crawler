@@ -24,7 +24,7 @@ async def main():
 
         for i, gym in enumerate(zdrofit_gyms):
             get_zdrofit_class.send(gym.id)
-            # await asyncio.sleep(random.randint(2, 5))
+            await asyncio.sleep(random.randint(2, 4))
 
 
 @dramatiq.actor

@@ -17,11 +17,6 @@ from scraper.db import engine
 from scraper.services import ScrapJobService
 
 
-USERNAME = "testaaa"
-PASSWORD = "Testuser123123123"
-PROXY_SERVER = "https://pr.oxylabs.io:7777"
-
-
 MONTH_MAPPER = {
     "styczeń": 1,
     "stycznia": 1,
@@ -111,15 +106,10 @@ class ZdrofitClassSpider:
 
     async def get_data(self):
         chromium = self._playwright.chromium
-        browser = await chromium.launch(
-            headless=True,
-            proxy={
-                "server": settings.PROXY_SERVER,
-                "username": settings.USERNAME,
-                "password": settings.PASSWORD,
-            }
-        )
-        page = await browser.new_page()
+        browser = await chromium.launch(headless=True)
+        context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0")
+        page = await context.new_page()
+        await page.evaluate("() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         await page.goto(self._url)
 
         table_data = page.locator("xpath=/html/body/main/section/table")
@@ -181,12 +171,17 @@ def process_data(data: Any, gym) -> None:
 
 async def main(gym):
     job_service = ScrapJobService.create_new(spider_name=f"get_zdrofit_gym")
-    async with async_playwright() as playwright:
-        data = await ZdrofitClassSpider(url=gym.url, playwright=playwright).get_data()
+    try:
+        async with async_playwright() as playwright:
+            data = await ZdrofitClassSpider(url=gym.url, playwright=playwright).get_data()
 
-    job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
+        job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
 
-    process_data(data=data, gym=gym)
+        process_data(data=data, gym=gym)
+    except Exception as exc:
+        print(f"got exception {exc} for gym {gym.id}")
+        job_service.update_status(status=constants.ScrapJobStatus.UNEXPECTED_ERROR)
+        return
 
     job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
     print(f"get zdrofit gym for {gym.name} success !")  # TODO logger
@@ -202,4 +197,7 @@ def get_zdrofit_class(gym_id: str) -> None:
         print("gym not exists, id: ", gym_id)  # TODO move to logger
         return
 
-    asyncio.run(main(gym=gym))
+    try:
+        asyncio.run(main(gym=gym))
+    except:
+        print(f'unsuccesfull for {gym.name}')

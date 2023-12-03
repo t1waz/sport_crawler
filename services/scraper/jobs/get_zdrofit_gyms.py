@@ -35,15 +35,10 @@ def _get_section_url(section: Tag) -> str:
 
 async def get_page_data(playwright: Playwright):
     chromium = playwright.chromium
-    browser = await chromium.launch(
-        headless=True,
-        proxy={
-            "server": settings.PROXY_SERVER,
-            "username": settings.USERNAME,
-            "password": settings.PASSWORD,
-        }
-    )
-    page = await browser.new_page()
+    browser = await chromium.launch(headless=True)
+    context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0")
+    page = await context.new_page()
+    await page.evaluate("() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     await page.goto(URL)
 
     table_data = page.locator('xpath=//*[@id="lista"]')
