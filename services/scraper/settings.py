@@ -16,4 +16,3 @@ SCHEDULE_CONFIG_PATH = "/app/scraper/schedule.yml"
 PROXY_SERVER = os.getenv("PROXY_SERVER")
 PROXY_USERNAME = os.getenv("PROXY_USERNAME")
 PROXY_PASSWORD = os.getenv("PROXY_PASSWORD")
-

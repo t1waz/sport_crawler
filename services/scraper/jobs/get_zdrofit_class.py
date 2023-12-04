@@ -12,9 +12,10 @@ from sqlalchemy.orm import Session
 from common import constants
 from common.entites import SportClassData
 from common.tables import GymClass, GymClassBook, GymTable
-from scraper import settings
+from scraper import settings  # type: ignore
 from scraper.db import engine
 from scraper.services import ScrapJobService
+import traceback
 
 
 MONTH_MAPPER = {
@@ -107,9 +108,13 @@ class ZdrofitClassSpider:
     async def get_data(self):
         chromium = self._playwright.chromium
         browser = await chromium.launch(headless=True)
-        context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0")
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0"
+        )
         page = await context.new_page()
-        await page.evaluate("() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        await page.evaluate(
+            "() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        )
         await page.goto(self._url)
 
         table_data = page.locator("xpath=/html/body/main/section/table")
@@ -129,9 +134,7 @@ def _process_gym_class(gym, session, class_data: SportClassData) -> None:
         .first()
     )
     if not gym_class:
-        gym_class = GymClass(
-            id=str(uuid.uuid4()), name=class_data.name, gym_id=gym.id
-        )
+        gym_class = GymClass(id=str(uuid.uuid4()), name=class_data.name, gym_id=gym.id)
         session.add(gym_class)
 
     class_book_start_at = get_datetime(
@@ -173,14 +176,20 @@ async def main(gym):
     job_service = ScrapJobService.create_new(spider_name=f"get_zdrofit_gym")
     try:
         async with async_playwright() as playwright:
-            data = await ZdrofitClassSpider(url=gym.url, playwright=playwright).get_data()
+            data = await ZdrofitClassSpider(
+                url=gym.url, playwright=playwright
+            ).get_data()
 
         job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
 
         process_data(data=data, gym=gym)
     except Exception as exc:
         print(f"got exception {exc} for gym {gym.id}")
-        job_service.update_status(status=constants.ScrapJobStatus.UNEXPECTED_ERROR)
+        job_service.update_status(
+            is_finished=True,
+            data=traceback.format_exc(),
+            status=constants.ScrapJobStatus.SPIDER_NOT_FINISHED,
+        )
         return
 
     job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
@@ -200,4 +209,4 @@ def get_zdrofit_class(gym_id: str) -> None:
     try:
         asyncio.run(main(gym=gym))
     except:
-        print(f'unsuccesfull for {gym.name}')
+        print(f"unsuccesfull for {gym.name}")

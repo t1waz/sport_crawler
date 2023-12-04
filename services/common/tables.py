@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import Column, String, JSON, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, String, JSON, DateTime, Enum, ForeignKey, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
@@ -59,5 +59,6 @@ class ScrapJobTable(Base):
     updated_at = Column(DateTime())
     spider_name = Column(String(64))
     params = Column(JSON(), default=[])
+    data = Column(Text(), nullable=True)
     finished_at = Column(DateTime(), nullable=True)
     status = Column(Enum(constants.ScrapJobStatus))

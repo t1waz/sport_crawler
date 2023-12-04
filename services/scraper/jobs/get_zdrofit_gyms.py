@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 import uuid
 from dataclasses import asdict
 from typing import Any
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from common import constants
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
-from scraper import settings
+from scraper import settings  # type: ignore
 from scraper.db import engine
 from scraper.services import ScrapJobService
 
@@ -36,9 +37,13 @@ def _get_section_url(section: Tag) -> str:
 async def get_page_data(playwright: Playwright):
     chromium = playwright.chromium
     browser = await chromium.launch(headless=True)
-    context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0")
+    context = await browser.new_context(
+        user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0"
+    )
     page = await context.new_page()
-    await page.evaluate("() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    await page.evaluate(
+        "() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
     await page.goto(URL)
 
     table_data = page.locator('xpath=//*[@id="lista"]')
@@ -102,9 +107,16 @@ def process_data(data: Any) -> None:
 async def main():
     job_service = ScrapJobService.create_new(spider_name="get_zdrofit_gyms")
 
-    async with async_playwright() as playwright:
-        data = await get_page_data(playwright=playwright)
-    job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
+    try:
+        async with async_playwright() as playwright:
+            data = await get_page_data(playwright=playwright)
+        job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
+    except Exception as _:
+        job_service.update_status(
+            is_finished=True,
+            data=traceback.format_exc(),
+            status=constants.ScrapJobStatus.SPIDER_NOT_FINISHED,
+        )
 
     process_data(data=data)
 

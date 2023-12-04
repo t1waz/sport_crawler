@@ -79,7 +79,10 @@ class ScrapJobService:
         return cls(scrap_job=scrap_job)
 
     def update_status(
-        self, status: constants.ScrapJobStatus, is_finished: Optional[bool] = False
+        self,
+        status: constants.ScrapJobStatus,
+        data: Optional[str] = None,
+        is_finished: Optional[bool] = False,
     ) -> None:
         updated_data = {
             "status": status,
@@ -87,6 +90,8 @@ class ScrapJobService:
         }
         if is_finished:
             updated_data["finished_at"] = datetime.datetime.now()
+        if data:
+            updated_data["data"] = data
 
         self._job = replace(self._job, **updated_data)
         self.REPOSITORY.update(obj=self._job)
