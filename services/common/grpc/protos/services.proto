@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+import "messages.proto";
+
+
+service WebsiteFetcher {
+    rpc fetch_page(WebsiteFetchRequest) returns (WebsiteFetchResponse) {}
+}

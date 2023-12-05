@@ -43,14 +43,10 @@ services:
     <<: [*scraper, *restart_policy]
     command: python3 collector/worker.py
 
-#  scraper-master:
-#    <<: [*scraper, *restart_policy]
-#    command: python3 scraper/master.py
-#
-#  scraper-worker:
-#    <<: [*scraper, *restart_policy]
-#    command: dramatiq scraper.jobs
-#
+  collector-server:
+    <<: [*scraper, *restart_policy]
+    command: python3 collector/server.py
+
   db:
     <<: *restart_policy
     image: postgres:15-alpine

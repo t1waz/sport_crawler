@@ -1,13 +1,14 @@
 import asyncio
 import atexit
 
-from collector.services import WebsiteDataCollector
 from redis.asyncio import Redis
+
 from collector import settings
+from collector.services import WebsiteDataCollector
 
 
 GROUP_NAME = "test"
-STREAM_KEY = "collector"
+STREAM_KEY = "input_collector"
 COLLECTORS = []
 
 
@@ -37,8 +38,8 @@ if __name__ == "__main__":
 
     COLLECTORS = [
         WebsiteDataCollector.create(
-            stream_key=STREAM_KEY,
             group_name=GROUP_NAME,
+            stream_key=STREAM_KEY,
             redis_host=settings.REDIS_HOST,
             redis_port=settings.REDIS_PORT,
         )
