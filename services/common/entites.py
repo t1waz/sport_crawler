@@ -17,7 +17,7 @@ class Entity:
 
 @dataclass(frozen=True)
 class ScrapJob(Entity):
-    spider_name: str
+    name: str
     status: ScrapJobStatus
     created_at: datetime.datetime
     updated_at: datetime.datetime

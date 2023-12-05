@@ -55,9 +55,9 @@ class ScrapJobTable(Base):
     __tablename__ = "scrap_job"
 
     id = Column(String(64), primary_key=True)
+    name = Column(String(64))
     created_at = Column(DateTime())
     updated_at = Column(DateTime())
-    spider_name = Column(String(64))
     params = Column(JSON(), default=[])
     data = Column(Text(), nullable=True)
     finished_at = Column(DateTime(), nullable=True)

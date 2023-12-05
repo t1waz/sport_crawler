@@ -92,7 +92,15 @@ class WebsiteDataCollector:
         async with async_playwright() as playwright:
             chromium = playwright.chromium
             self._browser = await chromium.launch()
-            self._page = await self._browser.new_page()
+            context = await self._browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) "
+                "Gecko/20100101 Firefox/109.0"
+            )
+            self._page = await context.new_page()
+            await self._page.evaluate(
+                "() => Object.defineProperty("
+                "navigator, 'webdriver', {get: () => undefined})"
+            )
 
             while True:
                 await self.main()

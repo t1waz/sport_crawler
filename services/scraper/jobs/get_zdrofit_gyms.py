@@ -1,73 +1,23 @@
-import asyncio
-import traceback
 import uuid
 from dataclasses import asdict
-from typing import Any
+from typing import Optional, List, Any
 
 import dramatiq
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from playwright.async_api import async_playwright, Playwright
 from sqlalchemy.orm import Session
 
-from common import constants
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
 from scraper import settings  # type: ignore
 from scraper.db import engine
-from scraper.services import ScrapJobService
+from scraper.logic import ScraperJobLogic
 
 
 DOMAIN = "zdrofit.pl"
-URL = "https://zdrofit.pl/grafik-zajec"
 
 
-def _get_section_address(section: Tag) -> str:
-    return section.find("p").text
-
-
-def _get_section_name(section: Tag) -> str:
-    return f'Zdrofit {section.find("a").text}'
-
-
-def _get_section_url(section: Tag) -> str:
-    return f'https://{DOMAIN}{section.find("a")["href"].replace("//", "/")}'
-
-
-async def get_page_data(playwright: Playwright):
-    chromium = playwright.chromium
-    browser = await chromium.launch(headless=True)
-    context = await browser.new_context(
-        user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0"
-    )
-    page = await context.new_page()
-    await page.evaluate(
-        "() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    )
-    await page.goto(URL)
-
-    table_data = page.locator('xpath=//*[@id="lista"]')
-    table = BeautifulSoup(await table_data.inner_html(), features="lxml")
-
-    await browser.close()
-
-    gyms = []
-    for section in table.find_all("section"):
-        for s in section.find("ul"):
-            gyms.append(
-                SportGymData(
-                    provider="zdrofit",
-                    id=str(uuid.uuid4()),
-                    url=_get_section_url(section=s),
-                    name=_get_section_name(section=s),
-                    address=_get_section_address(section=s),
-                )
-            )
-
-    return gyms
-
-
-def process_data(data: Any) -> None:
+def save_sport_gym_data(data: List[SportGymData]) -> None:
     with Session(engine) as session:
         zdrofit_provider = (
             session.query(ProviderTable).filter_by(name="zdrofit").first()
@@ -104,26 +54,56 @@ def process_data(data: Any) -> None:
         session.commit()
 
 
-async def main():
-    job_service = ScrapJobService.create_new(spider_name="get_zdrofit_gyms")
+class GetZdrofitGymsJob(ScraperJobLogic):
+    JOB_NAME = "get zdrofit gyms"
 
-    try:
-        async with async_playwright() as playwright:
-            data = await get_page_data(playwright=playwright)
-        job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
-    except Exception as _:
-        job_service.update_status(
-            is_finished=True,
-            data=traceback.format_exc(),
-            status=constants.ScrapJobStatus.SPIDER_NOT_FINISHED,
-        )
+    def __init__(self, *args, **kwargs) -> None:
+        self._gyms = []
+        super().__init__(*args, **kwargs)
 
-    process_data(data=data)
+    @staticmethod
+    def _get_section_address(section: Tag) -> str:
+        return section.find("p").text
 
-    job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
-    print("get zdrofit gyms success !")  # TODO logger
+    @staticmethod
+    def _get_section_name(section: Tag) -> str:
+        return f'Zdrofit {section.find("a").text}'
+
+    @staticmethod
+    def _get_section_url(section: Tag) -> str:
+        return f'https://{DOMAIN}{section.find("a")["href"].replace("//", "/")}'
+
+    def _parse_section(self, section: Tag) -> None:
+        for s in section.find("ul"):
+            self._gyms.append(
+                SportGymData(
+                    provider="zdrofit",
+                    id=str(uuid.uuid4()),
+                    url=self._get_section_url(section=s),
+                    name=self._get_section_name(section=s),
+                    address=self._get_section_address(section=s),
+                )
+            )
+
+    def process_data(self, page_data: str) -> Optional[Any]:
+        page = BeautifulSoup(page_data, features="lxml")
+        table = page.find(id="lista")
+
+        for section in table.find_all("section"):
+            self._parse_section(section=section)
+
+        return self.gyms
+
+    @property
+    def url(self) -> str:
+        return "https://zdrofit.pl/grafik-zajec"
+
+    @property
+    def gyms(self) -> List[SportGymData]:
+        return self._gyms
 
 
 @dramatiq.actor
 def get_zdrofit_gyms():
-    asyncio.run(main())
+    data = GetZdrofitGymsJob().run()
+    save_sport_gym_data(data=data)

@@ -39,6 +39,14 @@ services:
     networks:
       - sport_spotter
 
+  scraper-master:
+    <<: [*scraper, *restart_policy]
+    command: python3 scraper/master.py
+
+  scraper-worker:
+    <<: [*scraper, *restart_policy]
+    command: dramatiq scraper.jobs
+
   collector-worker:
     <<: [*scraper, *restart_policy]
     command: python3 collector/worker.py

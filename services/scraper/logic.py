@@ -1,74 +1,53 @@
-# from typing import Any
-#
-# from common import constants
-# from scraper.exceptions import (
-#     SpiderNotFinished,
-#     SpiderNetworkException,
-#     SpiderTimeoutException,
-#     SpiderParseDataException,
-# )
-# from scraper.services import ScrapJobService, SpiderConnector
-#
-#
-# class ScraperJobLogic:
-#     SPIDER_NAME = ""
-#
-#     def __init__(self) -> None:
-#         self._spider_connector = SpiderConnector(spider_name=self.SPIDER_NAME)
-#         self._scrap_job_service = ScrapJobService.create_new(
-#             spider_name=self.SPIDER_NAME
-#         )
-#
-#     def get_spider_kwargs(self) -> dict:
-#         raise NotImplemented
-#
-#     def process_data(self, data: Any) -> None:
-#         raise NotImplemented
-#
-#     def run(self) -> None:
-#         status = constants.ScrapJobStatus.RUNNING
-#         self._scrap_job_service.update_status(status=status)
-#
-#         try:
-#             self._spider_connector.trigger_spider(
-#                 job_id=self._scrap_job_service.scrap_job.id, **self.get_spider_kwargs()
-#             )
-#         except SpiderNetworkException:
-#             status = constants.ScrapJobStatus.NETWORK_ERROR
-#         except SpiderNotFinished:
-#             status = constants.ScrapJobStatus.SPIDER_NOT_FINISHED
-#         except SpiderTimeoutException:
-#             status = constants.ScrapJobStatus.NETWORK_ERROR
-#         except SpiderParseDataException:
-#             status = constants.ScrapJobStatus.CONTENT_ERROR
-#         except Exception as exc:
-#             print(f"get unknown exception {exc}")  # TODO: logger
-#             status = constants.ScrapJobStatus.UNEXPECTED_ERROR
-#
-#         is_finished = status != constants.ScrapJobStatus.RUNNING
-#         if is_finished:
-#             self._scrap_job_service.update_status(
-#                 status=status, is_finished=is_finished
-#             )
-#             return
-#
-#         try:
-#             data = self._spider_connector.fetch_data()
-#             status = constants.ScrapJobStatus.FINISH
-#         except SpiderNotFinished:
-#             status = constants.ScrapJobStatus.SPIDER_NOT_FINISHED
-#             self._scrap_job_service.update_status(status=status, is_finished=True)
-#             return
-#
-#         if not data:
-#             status = constants.ScrapJobStatus.CONTENT_ERROR
-#             self._scrap_job_service.update_status(status=status, is_finished=True)
-#             return
-#
-#         try:
-#             self.process_data(data=data)
-#         except Exception as exc:
-#             print(f"got exception {exc} during process data {data}")  # TODO: logger
-#             status = constants.ScrapJobStatus.PROCESS_DATA_ERROR
-#
-#         self._scrap_job_service.update_status(status=status, is_finished=True)
+import traceback
+from typing import Any, Optional
+
+from common import constants
+from scraper.grpc_clients import get_website_fetcher_client
+from scraper.services import ScrapJobService
+
+
+class ScraperJobLogic:
+    JOB_NAME = ""
+
+    def __init__(self) -> None:
+        self._fetch_client = get_website_fetcher_client()
+        self._scrap_job_service = ScrapJobService.create_new(name=self.JOB_NAME)
+
+    def process_data(self, page_data: str) -> Optional[Any]:
+        raise NotImplemented()
+
+    def run(self) -> Any:
+        """
+        call this to scrap data
+        """
+        print(f"start job for {self.JOB_NAME}")  # TODO: logger
+        try:
+            page_data = self._fetch_client.fetch_page(url=self.url)
+        except Exception as _:  # noqa
+            self._scrap_job_service.update_status(
+                is_finished=True,
+                data=traceback.format_exc(),
+                status=constants.ScrapJobStatus.FETCHER_NOT_FINISHED,
+            )
+            return None
+
+        try:
+            data = self.process_data(page_data=page_data)
+        except Exception as _:  # noqa
+            self._scrap_job_service.update_status(
+                is_finished=True,
+                data=traceback.format_exc(),
+                status=constants.ScrapJobStatus.PROCESS_DATA_ERROR,
+            )
+            return
+
+        self._scrap_job_service.update_status(
+            is_finished=True, status=constants.ScrapJobStatus.FINISH
+        )
+        print(f"job for {self.JOB_NAME} sucess")  # TODO: logger
+
+        return data
+
+    @property
+    def url(self) -> str:
+        raise NotImplemented()

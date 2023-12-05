@@ -4,7 +4,6 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
-from scraper.stores import redis_store
 
 
 # useful for handling different item types with a single interface
@@ -33,7 +32,6 @@ class CrawlerSpiderMiddleware:
     def process_spider_output(self, response, result, spider):
         for i in result:
             spider.logger.info(f"stored job id: {spider.job_id}")
-            redis_store.store(key=spider.job_id, data=i)
             yield i
 
     def process_spider_exception(self, response, exception, spider):

@@ -23,7 +23,9 @@ class WebsiteFetcherServicer(services_pb2_grpc.WebsiteFetcherServicer):
     ) -> messages_pb2.WebsiteFetchResponse:
         data = self._stream_master.get_data(data={"url": request.url})
 
-        return messages_pb2.WebsiteFetchResponse(id=request.id, content=data["content"].encode())
+        return messages_pb2.WebsiteFetchResponse(
+            id=request.id, content=data["content"].encode()
+        )
 
 
 def serve():
@@ -31,8 +33,7 @@ def serve():
     services_pb2_grpc.add_WebsiteFetcherServicer_to_server(
         WebsiteFetcherServicer(
             stream_master=StreamMaster(
-                stream_key=STREAM_KEY,
-                client=Redis(host="redis", port=6379)
+                stream_key=STREAM_KEY, client=Redis(host="redis", port=6379)
             )
         ),
         server,
