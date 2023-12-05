@@ -13,15 +13,15 @@ networks:
 
 
 services:
-  grafana:
-    <<: *restart_policy
-    image: grafana/grafana-enterprise
-    volumes:
-      - grafana_data:/var/lib/grafana
-    ports:
-     - '0.0.0.0:3000:3000'
-    networks:
-      - sport_spotter
+#  grafana:
+#    <<: *restart_policy
+#    image: grafana/grafana-enterprise
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    ports:
+#     - '0.0.0.0:3000:3000'
+#    networks:
+#      - sport_spotter
 
   scraper: &scraper
     build:
@@ -39,14 +39,18 @@ services:
     networks:
       - sport_spotter
 
-  scraper-master:
+  collector-worker:
     <<: [*scraper, *restart_policy]
-    command: python3 scraper/master.py
+    command: python3 collector/worker.py
 
-  scraper-worker:
-    <<: [*scraper, *restart_policy]
-    command: dramatiq scraper.jobs
-
+#  scraper-master:
+#    <<: [*scraper, *restart_policy]
+#    command: python3 scraper/master.py
+#
+#  scraper-worker:
+#    <<: [*scraper, *restart_policy]
+#    command: dramatiq scraper.jobs
+#
   db:
     <<: *restart_policy
     image: postgres:15-alpine
