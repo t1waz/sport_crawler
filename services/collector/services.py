@@ -9,6 +9,18 @@ from typing import Optional
 
 from playwright.async_api import async_playwright
 from redis.asyncio import Redis
+import random
+
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
+]
 
 
 class StreamMaster:
@@ -86,30 +98,38 @@ class WebsiteDataCollector:
             )
         )
 
+    async def _setup_new_page(self) -> None:
+        context = await self._browser.new_context(
+                user_agent=random.choice(USER_AGENTS)
+            )
+        self._page = await context.new_page()
+        await self._page.evaluate(
+            "() => Object.defineProperty("
+            "navigator, 'webdriver', {get: () => undefined})"
+        )
+
     async def main(self) -> None:
         data = await self._stream_worker.consume()
         if data:
             await self._page.goto(data["url"])
             content = await self._page.content()
             await self._stream_worker.send(id=data["id"], data={"content": content})
+            await self._setup_new_page()
 
     async def run(self) -> None:
         print(f"collector id: {self.id} started")  # TODO: logging
         async with async_playwright() as playwright:
             chromium = playwright.chromium
             self._browser = await chromium.launch()
-            context = await self._browser.new_context(
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) "
-                "Gecko/20100101 Firefox/109.0"
-            )
-            self._page = await context.new_page()
-            await self._page.evaluate(
-                "() => Object.defineProperty("
-                "navigator, 'webdriver', {get: () => undefined})"
-            )
+            await self._setup_new_page()
 
             while True:
-                await self.main()
+                try:
+                    await self.main()
+                except Exception as exc:
+                    await self._setup_new_page()
+                    print(exc)  # TODO logger
+
                 await asyncio.sleep(0.5)
 
     @property
