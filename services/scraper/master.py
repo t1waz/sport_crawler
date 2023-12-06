@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+import time  # noqa
 
 from common.entites import JobSchedule
 from common.helpers import load_schedule_config
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         now = datetime.datetime.now()  # TODO make warsaw UTC aware
         for i, (job, execution_datetime) in enumerate(data):
             if now > execution_datetime:
-                print(f"running job {job.name}")  # TODO logger
+                print(f"schedule job {job.name}")  # TODO logger
                 job.method.send()
                 data[i][1] = next(job.execution_datetimes())
 

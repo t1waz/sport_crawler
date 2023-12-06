@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import uuid
 from typing import List, Optional, Any
@@ -6,16 +5,13 @@ from typing import List, Optional, Any
 import dramatiq
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from playwright.async_api import async_playwright, Playwright
 from sqlalchemy.orm import Session
 
-from common import constants
 from common.entites import SportClassData
 from common.tables import GymClass, GymClassBook, GymTable
 from scraper import settings  # type: ignore
 from scraper.db import engine
-from scraper.services import ScrapJobService
-import traceback
+from scraper.logic import ScraperJobLogic
 
 
 MONTH_MAPPER = {
@@ -65,69 +61,7 @@ def get_datetime(entity: SportClassData, hour_str: str) -> datetime.datetime:
     )
 
 
-class ZdrofitClassSpider:
-    def __init__(self, url: str, playwright: Playwright):
-        self._url = url
-        self._days: List[str] = []
-        self._hours: List[str] = []
-        self._playwright = playwright
-        self._table: Optional[BeautifulSoup] = None
-
-    def _read_sport_records(self, table_data: Tag):
-        for i, d in enumerate(table_data.find_all("td")[: len(self._days)]):
-            d = d.find("div", {"class": "club-schedule-item"})
-            if not d:
-                continue
-            start_hour, end_hour = d.find_all("strong")[1].text.strip().split(" - ")
-            self._sports.append(
-                SportClassData(
-                    id=str(uuid.uuid4()),
-                    end_hour=end_hour,
-                    name=d.find("a").text,
-                    start_hour=start_hour,
-                    day=f"{self._days[i]} {datetime.datetime.now().year}",
-                )
-            )
-
-    def _read_hours(self) -> None:
-        rows = self._table.find_all("tr")[1:]
-
-        self._hours = [row.find("th").text for row in rows]
-
-    def _read_days(self) -> None:
-        rows = list(self._table.find("thead").find("tr"))[1:8]
-
-        self._days = [row.find("strong").text for row in rows]
-
-    def _read_sports(self) -> None:
-        self._sports = []
-        table_body = self._table.find("tbody")
-        for data in table_body.find_all("tr")[: len(self._hours)]:
-            self._read_sport_records(table_data=data)
-
-    async def get_data(self):
-        chromium = self._playwright.chromium
-        browser = await chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0"
-        )
-        page = await context.new_page()
-        await page.evaluate(
-            "() => Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-        )
-        await page.goto(self._url)
-
-        table_data = page.locator("xpath=/html/body/main/section/table")
-        self._table = BeautifulSoup(await table_data.inner_html(), features="lxml")
-
-        self._read_hours()
-        self._read_days()
-        self._read_sports()
-
-        return self._sports
-
-
-def _process_gym_class(gym, session, class_data: SportClassData) -> None:
+def _save_gym_class(gym, session, class_data: SportClassData) -> None:
     gym_class = (
         session.query(GymClass)
         .filter(GymClass.gym_id == gym.id, GymClass.name == class_data.name)
@@ -164,49 +98,81 @@ def _process_gym_class(gym, session, class_data: SportClassData) -> None:
     session.add(class_book)
 
 
-def process_data(data: Any, gym) -> None:
+def save_zdrofit_gym_classes(data: List[SportClassData], gym_id) -> None:
     with Session(engine) as session:
+        gym = session.query(GymTable).filter(GymTable.id == gym_id).first()
+        if not gym:
+            raise ValueError("cannot save, no gym_id")
+
         for gym_class in data:
-            _process_gym_class(gym=gym, session=session, class_data=gym_class)
+            _save_gym_class(gym=gym, session=session, class_data=gym_class)
 
         session.commit()
 
 
-async def main(gym):
-    job_service = ScrapJobService.create_new(spider_name=f"get_zdrofit_gym")
-    try:
-        async with async_playwright() as playwright:
-            data = await ZdrofitClassSpider(
-                url=gym.url, playwright=playwright
-            ).get_data()
+class GetZdrofitGymClassJob(ScraperJobLogic):
+    JOB_NAME = "get zdrofit gym class"
 
-        job_service.update_status(status=constants.ScrapJobStatus.RUNNING)
+    def __init__(self, gym_class_url: str, *args, **kwargs) -> None:
+        self._classes = []
+        self._table = None
+        self._url = gym_class_url
+        self._days: List[str] = []
+        self._hours: List[str] = []
 
-        process_data(data=data, gym=gym)
-    except Exception as exc:
-        print(f"got exception {exc} for gym {gym.id}")
-        job_service.update_status(
-            is_finished=True,
-            data=traceback.format_exc(),
-            status=constants.ScrapJobStatus.SPIDER_NOT_FINISHED,
-        )
-        return
+        super().__init__(*args, **kwargs)
 
-    job_service.update_status(status=constants.ScrapJobStatus.FINISH, is_finished=True)
-    print(f"get zdrofit gym for {gym.name} success !")  # TODO logger
+    def _read_hours(self) -> None:
+        rows = self._table.find_all("tr")[1:]
+
+        self._hours = [row.find("th").text for row in rows]
+
+    def _read_days(self) -> None:
+        rows = list(self._table.find("thead").find("tr"))[1:8]
+
+        self._days = [row.find("strong").text for row in rows]
+
+    def _read_sport_records(self, table_data: Tag):
+        for i, d in enumerate(table_data.find_all("td")[: len(self._days)]):
+            d = d.find("div", {"class": "club-schedule-item"})
+            if not d:
+                continue
+            start_hour, end_hour = d.find_all("strong")[1].text.strip().split(" - ")
+            self._classes.append(
+                SportClassData(
+                    id=str(uuid.uuid4()),
+                    end_hour=end_hour,
+                    name=d.find("a").text,
+                    start_hour=start_hour,
+                    day=f"{self._days[i]} {datetime.datetime.now().year}",
+                )
+            )
+
+    def _read_sports(self) -> None:
+        table_body = self._table.find("tbody")
+        for data in table_body.find_all("tr")[: len(self._hours)]:
+            self._read_sport_records(table_data=data)
+
+    def process_data(self, page_data: str) -> Optional[Any]:
+        page = BeautifulSoup(page_data, features="lxml")
+        self._table = page.find("table", {"class": "schedule"})
+
+        self._read_hours()
+        self._read_days()
+        self._read_sports()
+
+        return self._classes
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @property
+    def classes(self) -> List[GymClassBook]:
+        return self._classes
 
 
 @dramatiq.actor
-def get_zdrofit_class(gym_id: str) -> None:
-    print("start get_zdrofit_class for gym ", gym_id)  # TODO move to logger
-    with Session(engine) as session:
-        gym = session.query(GymTable).filter(GymTable.id == gym_id).first()
-
-    if gym is None:
-        print("gym not exists, id: ", gym_id)  # TODO move to logger
-        return
-
-    try:
-        asyncio.run(main(gym=gym))
-    except:
-        print(f"unsuccesfull for {gym.name}")
+def get_zdrofit_class(gym_id, gym_name, gym_url) -> None:
+    data = GetZdrofitGymClassJob(gym_class_url=gym_url).run()
+    save_zdrofit_gym_classes(data=data, gym_id=gym_id)

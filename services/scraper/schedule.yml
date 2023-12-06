@@ -3,3 +3,7 @@ jobs:
     job: "scraper.jobs.get_zdrofit_gyms"
     start: "00:01"
     duration: "1m"
+  - name: "get_zdrofit_classes"
+    job: "scraper.jobs.get_zdrofit_classes"
+    start: "00:01"
+    duration: "5m"

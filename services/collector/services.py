@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import pickle
 import time
 import uuid
 from typing import Any
+from typing import Optional
 
 from playwright.async_api import async_playwright
 from redis.asyncio import Redis
-import pickle
 
 
 class StreamMaster:
@@ -15,13 +16,14 @@ class StreamMaster:
         self._client = client
         self._stream_key = stream_key
 
-    def get_data(self, data: dict) -> Any:
-        msg_id = str(uuid.uuid4())
+    def get_data(self, data: dict, id: Optional[str] = None) -> Any:
+        msg_id = id or str(uuid.uuid4())
 
         self._client.xadd(name=self._stream_key, fields={"id": msg_id, **data})
 
         x = 0
         data = None
+        time.sleep(1)
         while x < 100:
             data = self._client.get(name=msg_id)
             if data:
@@ -43,12 +45,15 @@ class StreamWorker:
 
     async def consume(self) -> Any:
         data = await self._client.xreadgroup(
-            groupname=self._group_name,
-            consumername=self.id,
-            streams={self._stream_key: ">"},
+            count=1,  # WTF spend so many hours
             noack=True,
+            consumername=self.id,
+            groupname=self._group_name,
+            streams={self._stream_key: ">"},
         )
         if data:
+            msg_id = data[0][1][0][0]
+            await self._client.xdel(self._stream_key, msg_id.decode())
             raw_data = data[0][1][0][1]
             return {k.decode(): v.decode() for k, v in raw_data.items()}
 
@@ -89,6 +94,7 @@ class WebsiteDataCollector:
             await self._stream_worker.send(id=data["id"], data={"content": content})
 
     async def run(self) -> None:
+        print(f"collector id: {self.id} started")  # TODO: logging
         async with async_playwright() as playwright:
             chromium = playwright.chromium
             self._browser = await chromium.launch()

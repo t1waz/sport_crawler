@@ -29,6 +29,7 @@ class ScraperJobLogic:
                 data=traceback.format_exc(),
                 status=constants.ScrapJobStatus.FETCHER_NOT_FINISHED,
             )
+            print("cannot fetch")  # TODO: logger
             return None
 
         try:
@@ -39,7 +40,8 @@ class ScraperJobLogic:
                 data=traceback.format_exc(),
                 status=constants.ScrapJobStatus.PROCESS_DATA_ERROR,
             )
-            return
+            print("cannot process")  # TODO: logger
+            return None
 
         self._scrap_job_service.update_status(
             is_finished=True, status=constants.ScrapJobStatus.FINISH

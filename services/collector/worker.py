@@ -1,5 +1,6 @@
 import asyncio
 import atexit
+import uuid
 
 from redis.asyncio import Redis
 
@@ -25,7 +26,10 @@ atexit.register(close_collectors)
 
 
 async def create_group(redis_conn: Redis, name: str, stream_key: str) -> None:
-    await redis_conn.xgroup_create(name=stream_key, groupname=name, id=0, mkstream=True)
+    try:
+        await redis_conn.xgroup_create(name=stream_key, groupname=name, id=0, mkstream=True)
+    except Exception as _:  # noqa
+        pass
 
 
 if __name__ == "__main__":
@@ -49,4 +53,5 @@ if __name__ == "__main__":
     for collector in COLLECTORS:
         loop.create_task(collector.run())
 
+    print('worker started')  # TODO: logger
     loop.run_forever()

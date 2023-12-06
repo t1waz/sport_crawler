@@ -22,6 +22,7 @@ class ScrapJob(Entity):
     created_at: datetime.datetime
     updated_at: datetime.datetime
     finished_at: Optional[datetime.datetime]
+    data: Optional[str] = None
 
 
 @dataclass(frozen=True)

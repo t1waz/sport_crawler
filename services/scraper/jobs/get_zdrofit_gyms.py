@@ -26,30 +26,31 @@ def save_sport_gym_data(data: List[SportGymData]) -> None:
             zdrofit_provider = ProviderTable(id=str(uuid.uuid4()), name="zdrofit")
             session.add(zdrofit_provider)
 
-            existing_gym_names = session.query(GymTable.name).filter(
-                GymTable.provider == zdrofit_provider
-            )
-            new_gyms = [d for d in data if d.name not in existing_gym_names]
-            session.add_all(
-                [
-                    GymTable(
-                        is_active=True,
-                        provider_id=zdrofit_provider.id,
-                        **{k: v for k, v in asdict(d).items() if k != "provider"},
-                    )
-                    for d in new_gyms
-                ]
-            )
-            not_active_gyms = (
-                session.query(GymTable)
-                .populate_existing()
-                .with_for_update()
-                .filter(GymTable.name.not_in([d.name for d in new_gyms]))
-            )
-            for not_active_gym in not_active_gyms:
-                not_active_gym.is_active = False
+        existing_gym_names = session.query(GymTable.name).filter(
+            GymTable.provider == zdrofit_provider
+        ) or []
 
-            session.add_all(not_active_gyms)
+        new_gyms = [d for d in data if d.name not in existing_gym_names]
+        session.add_all(
+            [
+                GymTable(
+                    is_active=True,
+                    provider_id=zdrofit_provider.id,
+                    **{k: v for k, v in asdict(d).items() if k != "provider"},
+                )
+                for d in new_gyms
+            ]
+        )
+        not_active_gyms = (
+            session.query(GymTable)
+            .populate_existing()
+            .with_for_update()
+            .filter(GymTable.name.not_in([d.name for d in new_gyms]))
+        )
+        for not_active_gym in not_active_gyms:
+            not_active_gym.is_active = False
+
+        session.add_all(not_active_gyms)
 
         session.commit()
 

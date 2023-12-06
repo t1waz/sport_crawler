@@ -21,7 +21,7 @@ class WebsiteFetcherServicer(services_pb2_grpc.WebsiteFetcherServicer):
     def fetch_page(
         self, request: messages_pb2.WebsiteFetchRequest, context: grpc.ServicerContext
     ) -> messages_pb2.WebsiteFetchResponse:
-        data = self._stream_master.get_data(data={"url": request.url})
+        data = self._stream_master.get_data(data={"url": request.url}, id=request.id)
 
         return messages_pb2.WebsiteFetchResponse(
             id=request.id, content=data["content"].encode()
@@ -45,4 +45,5 @@ def serve():
 
 
 if __name__ == "__main__":
+    print("server started")  # TODO: logger
     serve()
