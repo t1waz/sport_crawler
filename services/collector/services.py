@@ -99,9 +99,7 @@ class WebsiteDataCollector:
         )
 
     async def _setup_new_page(self) -> None:
-        context = await self._browser.new_context(
-                user_agent=random.choice(USER_AGENTS)
-            )
+        context = await self._browser.new_context(user_agent=random.choice(USER_AGENTS))
         self._page = await context.new_page()
         await self._page.evaluate(
             "() => Object.defineProperty("

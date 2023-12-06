@@ -13,8 +13,7 @@ from scraper import settings  # type: ignore
 from scraper.db import engine
 from scraper.logic import ScraperJobLogic
 
-DOMAIN = "zdrofit.pl"
-PROVIDER_NAME = "zdrofit"
+PROVIDER_NAME = "energy_fitness"
 
 
 def save_sport_gym_data(data: List[SportGymData]) -> None:
@@ -56,56 +55,55 @@ def save_sport_gym_data(data: List[SportGymData]) -> None:
         session.commit()
 
 
-class GetZdrofitGymsJob(ScraperJobLogic):
-    JOB_NAME = "get zdrofit gyms"
+class GetEnergyFitnessGymsJob(ScraperJobLogic):
+    JOB_NAME = "get energy fitness gyms"
 
     def __init__(self, *args, **kwargs) -> None:
-        self._gyms = []
+        self._gyms_names: List[str] = []
+        self._gyms: List[SportGymData] = []
         super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def _get_section_address(section: Tag) -> str:
-        return section.find("p").text
+    def _read_row(self, row: Tag) -> None:
+        data_placeholder = row.find("a")
+        if not data_placeholder:
+            return
 
-    @staticmethod
-    def _get_section_name(section: Tag) -> str:
-        return f'Zdrofit {section.find("a").text}'
-
-    @staticmethod
-    def _get_section_url(section: Tag) -> str:
-        return f'https://{DOMAIN}{section.find("a")["href"].replace("//", "/")}'
-
-    def _parse_section(self, section: Tag) -> None:
-        for s in section.find("ul"):
+        gym_name = data_placeholder.text.lower()
+        if gym_name not in self._gyms_names:
             self._gyms.append(
                 SportGymData(
+                    address="",
+                    name=gym_name,
                     id=str(uuid.uuid4()),
                     provider=PROVIDER_NAME,
-                    url=self._get_section_url(section=s),
-                    name=self._get_section_name(section=s),
-                    address=self._get_section_address(section=s),
+                    url=data_placeholder["href"],
                 )
             )
 
+    def _read_section(self, section: Tag) -> None:
+        for row in section.find_all("td"):
+            self._read_row(row=row)
+
     def process_data(self, page_data: str) -> Optional[Any]:
         page = BeautifulSoup(page_data, features="lxml")
-        table = page.find(id="lista")
+        table = page.find("table", {"class": "grafikTable"})
+        table_body = table.find("tbody")
 
-        for section in table.find_all("section"):
-            self._parse_section(section=section)
+        for section in table_body.find_all("tr"):
+            self._read_section(section=section)
 
         return self.gyms
-
-    @property
-    def url(self) -> str:
-        return "https://zdrofit.pl/grafik-zajec"
 
     @property
     def gyms(self) -> List[SportGymData]:
         return self._gyms
 
+    @property
+    def url(self) -> str:
+        return "https://www.energyfitness.pl/grafik-zajec-1.php"
+
 
 @dramatiq.actor
-def get_zdrofit_gyms():
-    data = GetZdrofitGymsJob().run()
+def get_energy_fitness_gyms():
+    data = GetEnergyFitnessGymsJob().run()
     save_sport_gym_data(data=data)
