@@ -49,7 +49,7 @@ if __name__ == "__main__":
             redis_host=settings.REDIS_HOST,
             redis_port=settings.REDIS_PORT,
         )
-        for _ in range(10)
+        for _ in range(5)
     ]
 
     for collector in COLLECTORS:
