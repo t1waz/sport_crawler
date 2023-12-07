@@ -105,7 +105,7 @@ class WebsiteDataCollector:
 
     async def _setup_new_page(self) -> None:
         if self._browser:
-            self._browser.close()
+            await self._browser.close()
 
         chromium = self._p.chromium
         self._browser = await chromium.launch()
