@@ -145,10 +145,11 @@ class WebsiteDataCollector:
     async def main(self) -> None:
         data = await self._stream_worker.consume()
         if data:
+            await self.setup_new_page()
             await self._page.goto(data["url"])
             content = await self._page.content()
             await self._stream_worker.send(id=data["id"], data={"content": content})
-            await self.setup_new_page()
+            await self._close_resources()
 
     async def _handle_browser_refresh(self) -> None:
         if (
