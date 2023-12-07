@@ -19,7 +19,7 @@ PROVIDER_NAME = "energy_fitness"
 
 
 def save_sport_gym_data(data: List[SportGymData]) -> None:
-    with Session(engine) as session:
+    with Session() as session:
         provider = session.query(ProviderTable).filter_by(name=PROVIDER_NAME).first()
         if not provider:
             provider = ProviderTable(id=str(uuid.uuid4()), name=PROVIDER_NAME)

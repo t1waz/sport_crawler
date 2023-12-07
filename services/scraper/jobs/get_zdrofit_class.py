@@ -99,7 +99,7 @@ def _save_gym_class(gym, session, class_data: SportClassData) -> None:
 
 
 def save_zdrofit_gym_classes(data: List[SportClassData], gym_id) -> None:
-    with Session(engine) as session:
+    with Session() as session:
         gym = session.query(GymTable).filter(GymTable.id == gym_id).first()
         if not gym:
             raise ValueError("cannot save, no gym_id")
