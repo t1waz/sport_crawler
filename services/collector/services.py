@@ -10,6 +10,7 @@ from typing import Optional
 from playwright.async_api import async_playwright
 from redis.asyncio import Redis
 import random
+import datetime
 
 
 USER_AGENTS = [
@@ -80,11 +81,15 @@ class StreamWorker:
 
 
 class WebsiteDataCollector:
+    BROWSER_RESTART_PERIOD = 15 * 60  # seconds
+
     def __init__(self, stream_worker: StreamWorker) -> None:
+        self._p = None
         self._page = None
         self._browser = None
         self._id = str(uuid.uuid4())
         self._stream_worker = stream_worker
+        self._restart_timestamp = datetime.datetime.now()
 
     @classmethod
     def create(
@@ -99,6 +104,11 @@ class WebsiteDataCollector:
         )
 
     async def _setup_new_page(self) -> None:
+        if self._browser:
+            self._browser.close()
+
+        chromium = self._p.chromium
+        self._browser = await chromium.launch()
         context = await self._browser.new_context(user_agent=random.choice(USER_AGENTS))
         self._page = await context.new_page()
         await self._page.evaluate(
@@ -114,14 +124,21 @@ class WebsiteDataCollector:
             await self._stream_worker.send(id=data["id"], data={"content": content})
             await self._setup_new_page()
 
+    async def _handle_browser_refresh(self) -> None:
+        if (
+            datetime.datetime.now() - self._restart_timestamp
+        ).seconds > self.BROWSER_RESTART_PERIOD:
+            await self._setup_new_page()
+
     async def run(self) -> None:
         print(f"collector id: {self.id} started")  # TODO: logging
         async with async_playwright() as playwright:
-            chromium = playwright.chromium
-            self._browser = await chromium.launch()
+            self._p = playwright
             await self._setup_new_page()
 
             while True:
+                await self._handle_browser_refresh()
+
                 try:
                     await self.main()
                 except Exception as exc:
