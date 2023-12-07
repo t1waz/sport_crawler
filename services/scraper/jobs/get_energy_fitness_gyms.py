@@ -1,17 +1,19 @@
-import uuid
-from dataclasses import asdict
-from typing import Optional, List, Any
-
 import dramatiq
+import uuid
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from sqlalchemy.orm import Session
+from dataclasses import asdict
+from sqlalchemy.orm import sessionmaker
+from typing import Optional, List, Any
 
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
 from scraper import settings  # type: ignore
 from scraper.db import engine
 from scraper.logic import ScraperJobLogic
+
+Session = sessionmaker(bind=engine)
+
 
 PROVIDER_NAME = "energy_fitness"
 
@@ -106,4 +108,5 @@ class GetEnergyFitnessGymsJob(ScraperJobLogic):
 @dramatiq.actor
 def get_energy_fitness_gyms():
     data = GetEnergyFitnessGymsJob().run()
-    save_sport_gym_data(data=data)
+    if data:
+        save_sport_gym_data(data=data)

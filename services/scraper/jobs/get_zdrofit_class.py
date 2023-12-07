@@ -1,11 +1,10 @@
 import datetime
-import uuid
-from typing import List, Optional, Any
-
 import dramatiq
+import uuid
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
+from typing import List, Optional, Any
 
 from common.entites import SportClassData
 from common.tables import GymClass, GymClassBook, GymTable
@@ -13,6 +12,7 @@ from scraper import settings  # type: ignore
 from scraper.db import engine
 from scraper.logic import ScraperJobLogic
 
+Session = sessionmaker(bind=engine)
 
 MONTH_MAPPER = {
     "styczeń": 1,
@@ -175,4 +175,5 @@ class GetZdrofitGymClassJob(ScraperJobLogic):
 @dramatiq.actor
 def get_zdrofit_class(gym_id, gym_name, gym_url) -> None:
     data = GetZdrofitGymClassJob(gym_class_url=gym_url).run()
-    save_zdrofit_gym_classes(data=data, gym_id=gym_id)
+    if data:
+        save_zdrofit_gym_classes(data=data, gym_id=gym_id)

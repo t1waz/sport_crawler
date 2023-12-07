@@ -1,11 +1,10 @@
-import uuid
-from dataclasses import asdict
-from typing import Optional, List, Any
-
 import dramatiq
+import uuid
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from sqlalchemy.orm import Session
+from dataclasses import asdict
+from sqlalchemy.orm import sessionmaker
+from typing import Optional, List, Any
 
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
@@ -15,6 +14,8 @@ from scraper.logic import ScraperJobLogic
 
 DOMAIN = "zdrofit.pl"
 PROVIDER_NAME = "zdrofit"
+
+Session = sessionmaker(bind=engine)
 
 
 def save_sport_gym_data(data: List[SportGymData]) -> None:
@@ -108,4 +109,5 @@ class GetZdrofitGymsJob(ScraperJobLogic):
 @dramatiq.actor
 def get_zdrofit_gyms():
     data = GetZdrofitGymsJob().run()
-    save_sport_gym_data(data=data)
+    if data:
+        save_sport_gym_data(data=data)

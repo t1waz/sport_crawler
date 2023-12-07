@@ -1,17 +1,18 @@
+import dramatiq
 import random
 import time
+from sqlalchemy.orm import sessionmaker
 from typing import List
-
-import dramatiq
-from sqlalchemy.orm import Session
 
 from common.tables import ProviderTable, GymTable
 from scraper.db import engine
 from scraper.jobs.get_zdrofit_class import get_zdrofit_class
 
+Session = sessionmaker(bind=engine)
+
 
 def get_gyms() -> List[GymTable]:
-    with Session(engine) as session:
+    with Session() as session:
         zdrofit_provider = (
             session.query(ProviderTable).filter(ProviderTable.name == "zdrofit").first()
         )
