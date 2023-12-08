@@ -113,17 +113,15 @@ class WebsiteDataCollector:
         async with async_playwright() as playwright:
             chromium = playwright.chromium
             browser = await chromium.launch()
-            context = await browser.new_context(
-                    user_agent=random.choice(USER_AGENTS)
-                )
+            context = await browser.new_context(user_agent=random.choice(USER_AGENTS))
             page = await context.new_page()
             await page.evaluate(
                 "() => Object.defineProperty("
                 "navigator, 'webdriver', {get: () => undefined})"
             )
 
-            await self._page.goto(data["url"])
-            content = await self._page.content()
+            await page.goto(data["url"])
+            content = await page.content()
             await self._stream_worker.send(id=data["id"], data={"content": content})
 
             await page.close()
