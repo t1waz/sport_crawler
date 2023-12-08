@@ -93,9 +93,6 @@ class WebsiteDataCollector:
 
     def __init__(self, stream_worker: StreamWorker) -> None:
         self._p = None
-        self._page = None
-        self._context = None
-        self._browser = None
         self._id = str(uuid.uuid4())
         self._stream_worker = stream_worker
         self._restart_timestamp = datetime.datetime.now()
@@ -112,67 +109,38 @@ class WebsiteDataCollector:
             )
         )
 
-    async def _close_resources(self) -> None:
-        if self._page:
-            await self._page.close()
-        if self._context:
-            await self._context.close()
-        if self._browser:
-            await self._browser.close()
+    async def main(self, data: dict) -> None:
+        async with async_playwright() as playwright:
+            chromium = playwright.chromium
+            browser = await chromium.launch()
+            context = await browser.new_context(
+                    user_agent=random.choice(USER_AGENTS)
+                )
+            page = await context.new_page()
+            await page.evaluate(
+                "() => Object.defineProperty("
+                "navigator, 'webdriver', {get: () => undefined})"
+            )
 
-    async def _setup_new_page(self) -> None:
-        await self._close_resources()
-
-        chromium = self._p.chromium
-        self._browser = await chromium.launch()
-        self._context = await self._browser.new_context(
-            user_agent=random.choice(USER_AGENTS)
-        )
-        self._page = await self._context.new_page()
-
-        await self._page.evaluate(
-            "() => Object.defineProperty("
-            "navigator, 'webdriver', {get: () => undefined})"
-        )
-
-    async def setup_new_page(self) -> None:
-        try:
-            await self._setup_new_page()
-        except Exception as exc:
-            logger.error(f"Exception encountered: {exc}")
-            await self._close_resources()
-
-    async def main(self) -> None:
-        data = await self._stream_worker.consume()
-        if data:
-            await self.setup_new_page()
             await self._page.goto(data["url"])
             content = await self._page.content()
             await self._stream_worker.send(id=data["id"], data={"content": content})
-            await self._close_resources()
 
-    async def _handle_browser_refresh(self) -> None:
-        if (
-            datetime.datetime.now() - self._restart_timestamp
-        ).seconds > self.BROWSER_RESTART_PERIOD:
-            await self.setup_new_page()
+            await page.close()
+            await context.close()
+            await browser.close()
 
     async def run(self) -> None:
         logger.info(f"collector id: {self.id} started")
-        async with async_playwright() as playwright:
-            self._p = playwright
-            await self.setup_new_page()
-
+        try:
             while True:
-                await self._handle_browser_refresh()
-
-                try:
-                    await self.main()
-                except Exception as exc:
-                    await self.setup_new_page()
-                    logger.error(f"Exception encountered: {exc}")
-
-                await asyncio.sleep(0.5)
+                data = await self._stream_worker.consume()
+                if data:
+                    await self.main(data=data)
+                    await asyncio.sleep(0.5)
+        except Exception as exc:
+            logger.error(f"Exception encountered: {exc}")
+            pass
 
     @property
     def browser(self):
