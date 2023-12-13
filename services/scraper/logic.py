@@ -16,6 +16,10 @@ class ScraperJobLogic:
     def process_data(self, page_data: str) -> Optional[Any]:
         raise NotImplemented()
 
+    @property
+    def url(self) -> str:
+        raise NotImplemented()
+
     def run(self) -> Any:
         """
         call this to scrap data
@@ -30,6 +34,15 @@ class ScraperJobLogic:
                 status=constants.ScrapJobStatus.FETCHER_NOT_FINISHED,
             )
             print("cannot fetch")  # TODO: logger
+            return None
+
+        if not page_data:
+            self._scrap_job_service.update_status(
+                is_finished=True,
+                data=traceback.format_exc(),
+                status=constants.ScrapJobStatus.FETCHER_NOT_FINISHED,
+            )
+            print("no data")  # TODO: logger
             return None
 
         try:
@@ -49,7 +62,3 @@ class ScraperJobLogic:
         print(f"job for {self.JOB_NAME} sucess")  # TODO: logger
 
         return data
-
-    @property
-    def url(self) -> str:
-        raise NotImplemented()

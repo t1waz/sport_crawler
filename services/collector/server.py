@@ -22,6 +22,8 @@ class WebsiteFetcherServicer(services_pb2_grpc.WebsiteFetcherServicer):
         self, request: messages_pb2.WebsiteFetchRequest, context: grpc.ServicerContext
     ) -> messages_pb2.WebsiteFetchResponse:
         data = self._stream_master.get_data(data={"url": request.url}, id=request.id)
+        if not data:
+            data = {"content": ""}  # TODO: hack
 
         return messages_pb2.WebsiteFetchResponse(
             id=request.id, content=data["content"].encode()

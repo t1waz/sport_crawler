@@ -1,10 +1,11 @@
-import dramatiq
 import uuid
+from dataclasses import asdict
+from typing import Optional, List, Any
+
+import dramatiq
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from dataclasses import asdict
 from sqlalchemy.orm import sessionmaker
-from typing import Optional, List, Any
 
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable
@@ -61,7 +62,6 @@ class GetEnergyFitnessGymsJob(ScraperJobLogic):
     JOB_NAME = "get energy fitness gyms"
 
     def __init__(self, *args, **kwargs) -> None:
-        self._gyms_names: List[str] = []
         self._gyms: List[SportGymData] = []
         super().__init__(*args, **kwargs)
 
@@ -71,7 +71,7 @@ class GetEnergyFitnessGymsJob(ScraperJobLogic):
             return
 
         gym_name = data_placeholder.text.lower()
-        if gym_name not in self._gyms_names:
+        if gym_name not in self.gym_names:
             self._gyms.append(
                 SportGymData(
                     address="",
@@ -99,6 +99,10 @@ class GetEnergyFitnessGymsJob(ScraperJobLogic):
     @property
     def gyms(self) -> List[SportGymData]:
         return self._gyms
+
+    @property
+    def gym_names(self) -> List[str]:
+        return [g.name for g in self.gyms]
 
     @property
     def url(self) -> str:

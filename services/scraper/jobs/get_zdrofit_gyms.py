@@ -1,10 +1,11 @@
-import dramatiq
 import uuid
+from dataclasses import asdict
+from typing import Optional, List, Any
+
+import dramatiq
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from dataclasses import asdict
 from sqlalchemy.orm import sessionmaker
-from typing import Optional, List, Any
 
 from common.entites import SportGymData
 from common.tables import ProviderTable, GymTable

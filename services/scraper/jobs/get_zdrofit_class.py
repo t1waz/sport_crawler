@@ -161,19 +161,20 @@ class GetZdrofitGymClassJob(ScraperJobLogic):
         self._read_days()
         self._read_sports()
 
-        return self._classes
+        return self.classes
 
     @property
     def url(self) -> str:
         return self._url
 
     @property
-    def classes(self) -> List[GymClassBook]:
+    def classes(self) -> List[SportClassData]:
         return self._classes
 
 
 @dramatiq.actor
-def get_zdrofit_class(gym_id, gym_name, gym_url) -> None:
+def get_zdrofit_class(gym_id: str, gym_name: str, gym_url: str) -> None:
+    print(f"start get_zdrofit_class for gym: {gym_name}")  # TODO logger
     data = GetZdrofitGymClassJob(gym_class_url=gym_url).run()
     if data:
         save_zdrofit_gym_classes(data=data, gym_id=gym_id)

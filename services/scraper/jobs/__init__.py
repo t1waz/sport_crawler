@@ -10,3 +10,5 @@ from .get_zdrofit_gyms import *
 from .get_zdrofit_classes import *
 from .get_zdrofit_class import *
 from .get_energy_fitness_gyms import *
+from .get_energy_fitnesss_classes import *
+from .get_energy_fitness_class import *

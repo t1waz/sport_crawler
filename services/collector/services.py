@@ -135,7 +135,7 @@ class WebsiteDataCollector:
                 data = await self._stream_worker.consume()
                 if data:
                     await self.main(data=data)
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.25)
         except Exception as exc:
             logger.error(f"Exception encountered: {exc}")
             pass
